@@ -1,0 +1,27 @@
+schema: spec-driven
+
+context: |
+  Camu: landing page institucional (impressão 3D sob medida), pt-BR.
+  Stack: Next.js 16 (App Router, breaking changes vs training data —
+  check node_modules/next/dist/docs/ before assuming an API), React 19,
+  TypeScript, Tailwind v4 (tema em src/app/globals.css via @theme inline,
+  NÃO existe tailwind.config.js).
+  Escopo: frontend puro, sem carrinho/checkout/pagamento — venda só via
+  marketplaces (Mercado Livre, Shopee, Elo7, Etsy). Nunca propor esse fluxo.
+  Marca: paleta fixa teal #0FBFA0, coral #FF6B4A, charcoal #1B1F1E,
+  off-white #FAF7F2 (só variações de opacity/hover). Estilo "Sticker Pop":
+  contornos grossos border-charcoal, sombras .sticker-shadow*, sem
+  3D realista/fotorrealismo/pixel art no mascote Leon.
+  Convenções: 1 section = 1 componente em src/components/, ordenado em
+  src/app/page.tsx; conteúdo estruturado fica em src/lib/data.ts, não
+  hardcoded; placeholders seguem marcados até conteúdo real ser fornecido.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
