@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { products } from "@/lib/data";
 
 export default function Catalog() {
@@ -7,15 +8,18 @@ export default function Catalog() {
         <h2 className="font-heading text-3xl font-bold text-charcoal sm:text-4xl">
           Catálogo em destaque
         </h2>
-        <span className="text-sm font-semibold text-charcoal/50">
-          sem carrinho — cada card leva pro marketplace
-        </span>
+        <Link
+          href="/loja"
+          className="text-sm font-semibold text-teal-dark underline-offset-4 hover:underline"
+        >
+          ver catálogo completo →
+        </Link>
       </div>
       <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
         {products.map((p) => (
-          <a
+          <Link
             key={p.name}
-            href={p.href}
+            href="/loja"
             className="group overflow-hidden rounded-[18px] border-[3px] border-charcoal bg-offwhite-2 transition-transform hover:-translate-y-1"
           >
             <div className="placeholder-tiles flex aspect-square items-center justify-center">
@@ -31,7 +35,7 @@ export default function Catalog() {
                 {p.market}
               </span>
             </div>
-          </a>
+          </Link>
         ))}
       </div>
     </section>

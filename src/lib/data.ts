@@ -31,9 +31,6 @@ export type Marketplace = {
 
 export const marketplaces: Marketplace[] = [
   { name: "Mercado Livre", href: "#" },
-  { name: "Shopee", href: "#" },
-  { name: "Elo7", href: "#" },
-  { name: "Etsy", href: "#" },
 ];
 
 export type Testimonial = {
@@ -41,7 +38,6 @@ export type Testimonial = {
   author: string;
 };
 
-// Exemplo — substituir por depoimentos reais.
 export const testimonials: Testimonial[] = [
   { quote: "Chegou idêntico ao render, virei cliente fixo.", author: "Cliente exemplo" },
   { quote: "Acabamento surreal pra miniatura de RPG.", author: "Cliente exemplo" },
@@ -50,14 +46,19 @@ export const testimonials: Testimonial[] = [
 
 export const navLinks = [
   { label: "Sobre", href: "#sobre" },
-  { label: "Catálogo", href: "#catalogo" },
   { label: "Como funciona", href: "#como-funciona" },
-  { label: "Onde comprar", href: "#onde-comprar" },
   { label: "Contato", href: "#contato" },
 ];
 
+/** Mensagem já preenchida no WhatsApp para identificar que o contato veio do site. */
+export const whatsappGreeting =
+  "Oi! Vim pelo site da Camu 3D e queria saber mais sobre as impressões.";
+
 export const socialLinks = [
-  { label: "Instagram", href: "https://instagram.com/" },
-  { label: "WhatsApp", href: "https://wa.me/" },
-  { label: "E-mail", href: "mailto:contato@camu.com.br" },
+  { label: "Instagram", href: "https://instagram.com/camu3d" },
+  {
+    label: "WhatsApp",
+    href: `https://wa.me/5511912581464?text=${encodeURIComponent(whatsappGreeting)}`,
+  },
+  { label: "E-mail", href: "mailto:camu.3dprint@gmail.com" },
 ];

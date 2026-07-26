@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Baloo_2, Space_Grotesk } from "next/font/google";
+import { CartProvider } from "@/lib/cart-context";
 import "./globals.css";
 
 const baloo = Baloo_2({
@@ -14,12 +15,12 @@ const spaceGrotesk = Space_Grotesk({
   weight: ["400", "500", "600", "700"],
 });
 
-const siteUrl = "https://camu.com.br";
+const siteUrl = "https://camu3d.com.br";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Camu — Impressão 3D sob medida",
+    default: "Camu3d — Impressão 3D sob medida",
     template: "%s · Camu",
   },
   description:
@@ -30,14 +31,15 @@ export const metadata: Metadata = {
     "action figures",
     "geek",
     "colecionáveis",
+    "Camu3d",
     "Camu",
   ],
   openGraph: {
     type: "website",
     locale: "pt_BR",
     url: siteUrl,
-    siteName: "Camu",
-    title: "Camu — Impressão 3D sob medida",
+    siteName: "Camu3d",
+    title: "Camu3d — Impressão 3D sob medida",
     description:
       "Miniaturas, action figures e decor geek impressos em 3D. Compre pelo Mercado Livre, Shopee, Elo7 ou Etsy.",
     images: [
@@ -51,7 +53,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Camu — Impressão 3D sob medida",
+    title: "Camu3d — Impressão 3D sob medida",
     description:
       "Miniaturas, action figures e decor geek impressos em 3D pela Camu.",
     images: ["/images/leon-waving.png"],
@@ -64,7 +66,7 @@ export const metadata: Metadata = {
 const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "Camu",
+  name: "Camu3d",
   url: siteUrl,
   logo: `${siteUrl}/images/leon-logo.png`,
   description:
@@ -87,7 +89,7 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
-        {children}
+        <CartProvider>{children}</CartProvider>
       </body>
     </html>
   );

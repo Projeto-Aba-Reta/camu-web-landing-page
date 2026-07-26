@@ -6,9 +6,6 @@ export default function Testimonials() {
       <h2 className="mb-2 font-heading text-3xl font-bold text-charcoal sm:text-4xl">
         O que a galera fala
       </h2>
-      <p className="mb-7 font-mono text-xs font-semibold text-charcoal/45">
-        [exemplo — substituir por depoimentos reais]
-      </p>
       <div className="grid gap-5 md:grid-cols-3">
         {testimonials.map((t) => (
           <div

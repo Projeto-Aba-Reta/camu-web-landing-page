@@ -6,6 +6,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://camu.com.br/sitemap.xml",
+    sitemap: "https://camu3d.com.br/sitemap.xml",
   };
 }

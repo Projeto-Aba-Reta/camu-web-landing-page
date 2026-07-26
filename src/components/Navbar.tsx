@@ -24,6 +24,14 @@ export default function Navbar() {
         </Link>
 
         <ul className="hidden items-center gap-7 md:flex">
+          <li>
+            <Link
+              href="/loja"
+              className="text-sm font-medium text-charcoal transition-colors hover:text-teal-dark"
+            >
+              Loja
+            </Link>
+          </li>
           {navLinks.map((link) => (
             <li key={link.href}>
               <a
@@ -36,12 +44,12 @@ export default function Navbar() {
           ))}
         </ul>
 
-        <a
-          href="#onde-comprar"
+        <Link
+          href="/loja"
           className="sticker-shadow-sm rounded-full border-[3px] border-charcoal bg-coral px-5 py-2.5 font-heading text-sm font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none"
         >
-          Ver na loja
-        </a>
+          Ir pra loja
+        </Link>
       </nav>
     </header>
   );
