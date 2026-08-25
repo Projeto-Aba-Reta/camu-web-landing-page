@@ -58,3 +58,21 @@ export type OrderItem = {
   unit_price_cents: number;
   qty: number;
 };
+
+/** Status do processamento de uma encomenda de miniatura de pet gerada por IA. */
+export type PetMiniatureStatus = "processando" | "pronto" | "falhou";
+
+/** Encomenda de miniatura de pet — fotos do cliente, prévia gerada por IA e,
+ *  depois de aprovada, o pedido de pagamento vinculado (order_id). */
+export type PetMiniatureRequest = {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  photo_paths: string[]; // caminhos no bucket privado
+  status: PetMiniatureStatus;
+  generated_image_path: string | null; // caminho no bucket público
+  ai_error: string | null;
+  order_id: string | null;
+  created_at: string;
+  updated_at: string;
+};

@@ -10,7 +10,13 @@ mesmo projeto Supabase, sempre pelo servidor usando a service role.
   - `orders`, `order_items`, `order_events` — pedidos da loja (migration
     `20260722120000_pedidos_loja_e_canal_site.sql` no admin).
   - `custom_orders` — leads de encomenda personalizada.
-- Storage: bucket público `product-media` (fotos das peças, via `product_media.storage_path`).
+  - `pet_miniature_requests` — encomendas de miniatura de pet gerada por IA (fotos,
+    status, imagem gerada, `order_id`). Schema de referência em
+    `pet-miniature-schema.sql` — aplicar no admin, não é migration deste repo.
+- Storage:
+  - bucket público `product-media` (fotos das peças, via `product_media.storage_path`).
+  - bucket privado `pet-photos` (fotos originais enviadas pelo cliente, só service role lê).
+  - bucket público `pet-media` (prévias geradas pela IA da miniatura de pet).
 
 ## Para um produto aparecer na loja do site
 

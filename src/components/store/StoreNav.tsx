@@ -6,6 +6,7 @@ import { useCart } from "@/lib/cart-context";
 
 const links = [
   { label: "Catálogo", href: "/loja" },
+  { label: "Miniatura do seu pet", href: "/miniatura-pet" },
   { label: "Como funciona", href: "/#como-funciona" },
   { label: "Encomenda personalizada", href: "/encomenda" },
   { label: "Contato", href: "/#contato" },

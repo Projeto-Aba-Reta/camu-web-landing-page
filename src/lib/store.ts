@@ -3,6 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getServiceClient } from "./supabase/server";
 import { findPaymentByOrderCode } from "./mercadopago";
 import { SHIPPING_CENTS } from "./money";
+import { notifySaleChannels } from "./notify";
+import { getPetMiniatureRequestByOrderId, publicMediaUrl } from "./pet-miniature";
 import type { Order, OrderItem, OrderStatus, Product } from "./types";
 
 const SITE_CHANNEL = "loja_propria";
@@ -298,6 +300,38 @@ export async function applyPaymentStatus(
     status: (update.status as string) ?? current.status,
     note,
   });
+
+  // Pedido acabou de ser pago pela primeira vez: avisa o time da Camu.
+  if (orderStatus === "paid" && current.status === "pending") {
+    await notifySaleOfPaidOrder({ ...current, ...update } as Order);
+  }
+}
+
+/** Notificação de venda — best-effort, nunca interrompe a atualização do pedido. */
+async function notifySaleOfPaidOrder(order: Order): Promise<void> {
+  try {
+    const db = getServiceClient();
+    const [{ data: items }, petRequest] = await Promise.all([
+      db.from("order_items").select("*").eq("order_id", order.id),
+      getPetMiniatureRequestByOrderId(order.id),
+    ]);
+    const itemsSummary = ((items ?? []) as OrderItem[])
+      .map((it) => `${it.product_name}${it.qty > 1 ? ` (×${it.qty})` : ""}`)
+      .join(", ");
+
+    await notifySaleChannels({
+      orderCode: order.order_code,
+      customerName: order.customer_name,
+      totalCents: order.total_cents,
+      itemsSummary,
+      kind: petRequest ? "pet_miniature" : "catalog",
+      previewImageUrl: petRequest?.generated_image_path
+        ? publicMediaUrl(petRequest.generated_image_path)
+        : null,
+    });
+  } catch (err) {
+    console.error("[notifySaleOfPaidOrder]", err);
+  }
 }
 
 /**

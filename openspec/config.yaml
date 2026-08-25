@@ -6,8 +6,14 @@ context: |
   check node_modules/next/dist/docs/ before assuming an API), React 19,
   TypeScript, Tailwind v4 (tema em src/app/globals.css via @theme inline,
   NÃO existe tailwind.config.js).
-  Escopo: frontend puro, sem carrinho/checkout/pagamento — venda só via
-  marketplaces (Mercado Livre, Shopee, Elo7, Etsy). Nunca propor esse fluxo.
+  Além da home institucional, o site tem loja própria (catálogo → produto →
+  carrinho → checkout → confirmação → acompanhamento) com backend em Supabase
+  (mesmo schema do ERP camu-web-admin, dono das migrations) e pagamento via
+  Mercado Pago Checkout Pro (Pix + cartão). Marketplaces (Mercado Livre,
+  Shopee, Elo7, Etsy) são um canal adicional. Telas da loja ficam no route
+  group src/app/(store)/; server actions em src/app/actions/; camada de
+  dados em src/lib/store.ts; todo acesso ao banco é no servidor com a
+  service role (src/lib/supabase/server.ts).
   Marca: paleta fixa teal #0FBFA0, coral #FF6B4A, charcoal #1B1F1E,
   off-white #FAF7F2 (só variações de opacity/hover). Estilo "Sticker Pop":
   contornos grossos border-charcoal, sombras .sticker-shadow*, sem
