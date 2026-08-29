@@ -8,10 +8,12 @@ import {
   getPetMiniatureRequest,
   linkOrder,
   publicMediaUrl,
+  setSelectedVariant,
   validatePhotos,
   type IncomingPhoto,
 } from "@/lib/pet-miniature";
-import { createOrder, setOrderPreference } from "@/lib/store";
+import { createOrder, getPetMiniaturePricing, setOrderPreference } from "@/lib/store";
+import type { PetMiniatureVariant } from "@/lib/types";
 
 export type PetMiniatureIntakeResult =
   | { ok: true; requestId: string }
@@ -54,7 +56,10 @@ export type PetMiniatureStatusResult =
   | {
       ok: true;
       status: "processando" | "pronto" | "falhou";
-      previewUrl: string | null;
+      paintedPreviewUrl: string | null;
+      plainPreviewUrl: string | null;
+      semPinturaCents: number | null;
+      comPinturaCents: number | null;
       error: string | null;
     }
   | { ok: false; error: string };
@@ -64,10 +69,19 @@ export async function getPetMiniatureStatus(requestId: string): Promise<PetMinia
   const request = await getPetMiniatureRequest(requestId);
   if (!request) return { ok: false, error: "Encomenda não encontrada." };
 
+  const pricing = await getPetMiniaturePricing();
+
   return {
     ok: true,
     status: request.status,
-    previewUrl: request.generated_image_path ? publicMediaUrl(request.generated_image_path) : null,
+    paintedPreviewUrl: request.generated_image_painted_path
+      ? publicMediaUrl(request.generated_image_painted_path)
+      : null,
+    plainPreviewUrl: request.generated_image_plain_path
+      ? publicMediaUrl(request.generated_image_plain_path)
+      : null,
+    semPinturaCents: pricing.semPinturaCents,
+    comPinturaCents: pricing.comPinturaCents,
     error: request.ai_error,
   };
 }
@@ -86,11 +100,25 @@ export type PetMiniatureApprovalResult =
   | { ok: true; initPoint: string }
   | { ok: false; error: string };
 
-/** Aprova a prévia pronta e cria o pedido/preferência de pagamento. O preço
- *  vem sempre do listing do produto no catálogo (canal `loja_propria`) —
+const PRODUCT_ID_BY_VARIANT: Record<PetMiniatureVariant, string | undefined> = {
+  sem_pintura: process.env.PET_MINIATURE_PRODUCT_ID_SEM_PINTURA,
+  com_pintura: process.env.PET_MINIATURE_PRODUCT_ID_COM_PINTURA,
+};
+
+const VARIANT_LABEL: Record<PetMiniatureVariant, string> = {
+  sem_pintura: "Sem pintura",
+  com_pintura: "Com pintura",
+};
+
+/** Aprova a prévia pronta, grava a variante escolhida (sem pintura / com
+ *  pintura) e cria o pedido/preferência de pagamento. O preço vem sempre do
+ *  listing do produto correspondente no catálogo (canal `loja_propria`) —
  *  nunca de um valor calculado aqui. */
-export async function approvePetMiniatureAndPay(requestId: string): Promise<PetMiniatureApprovalResult> {
-  const productId = process.env.PET_MINIATURE_PRODUCT_ID;
+export async function approvePetMiniatureAndPay(
+  requestId: string,
+  variant: PetMiniatureVariant,
+): Promise<PetMiniatureApprovalResult> {
+  const productId = PRODUCT_ID_BY_VARIANT[variant];
   if (!productId) {
     return { ok: false, error: "Produto de miniatura de pet ainda não está configurado." };
   }
@@ -102,8 +130,10 @@ export async function approvePetMiniatureAndPay(requestId: string): Promise<PetM
   }
 
   try {
+    await setSelectedVariant(requestId, variant);
+
     const { order, items } = await createOrder({
-      items: [{ productId, variant: "Personalizado", qty: 1 }],
+      items: [{ productId, variant: VARIANT_LABEL[variant], qty: 1 }],
       customer: {
         name: request.customer_name,
         email: "",

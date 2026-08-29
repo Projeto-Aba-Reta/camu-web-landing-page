@@ -1,5 +1,5 @@
 import "server-only";
-import { generatePetMiniatureImage } from "./ai-image";
+import { generatePetMiniatureImages } from "./ai-image";
 import {
   downloadPhotosBase64,
   getPetMiniatureRequest,
@@ -20,7 +20,7 @@ export async function runPetMiniatureGeneration(requestId: string): Promise<void
     if (!request) return;
 
     const photos = await downloadPhotosBase64(request);
-    const result = await generatePetMiniatureImage(photos);
+    const result = await generatePetMiniatureImages(photos);
     await markReady(requestId, result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Falha desconhecida ao gerar a prévia.";

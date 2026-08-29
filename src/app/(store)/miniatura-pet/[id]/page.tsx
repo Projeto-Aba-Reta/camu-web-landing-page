@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPetMiniatureRequest, publicMediaUrl } from "@/lib/pet-miniature";
+import { getPetMiniaturePricing } from "@/lib/store";
 import PetMiniaturePreview from "@/components/store/PetMiniaturePreview";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,10 @@ type Params = { id: string };
 
 export default async function MiniaturaPetAcompanharPage({ params }: { params: Promise<Params> }) {
   const { id } = await params;
-  const request = await getPetMiniatureRequest(id);
+  const [request, pricing] = await Promise.all([
+    getPetMiniatureRequest(id),
+    getPetMiniaturePricing(),
+  ]);
   if (!request) notFound();
 
   return (
@@ -22,9 +26,18 @@ export default async function MiniaturaPetAcompanharPage({ params }: { params: P
       <PetMiniaturePreview
         requestId={request.id}
         initialStatus={request.status}
-        initialPreviewUrl={
-          request.generated_image_path ? publicMediaUrl(request.generated_image_path) : null
+        initialPaintedPreviewUrl={
+          request.generated_image_painted_path
+            ? publicMediaUrl(request.generated_image_painted_path)
+            : null
         }
+        initialPlainPreviewUrl={
+          request.generated_image_plain_path
+            ? publicMediaUrl(request.generated_image_plain_path)
+            : null
+        }
+        semPinturaCents={pricing.semPinturaCents}
+        comPinturaCents={pricing.comPinturaCents}
         initialError={request.ai_error}
       />
     </section>

@@ -85,6 +85,37 @@ export async function getProducts(): Promise<Product[]> {
   return rows.map((p) => toProduct(p, priceByProduct.get(p.id) ?? 0, covers.get(p.id) ?? null));
 }
 
+export type PetMiniaturePricing = {
+  semPinturaCents: number | null;
+  comPinturaCents: number | null;
+};
+
+/** Preços das duas variantes da miniatura de pet, sempre lidos do listing
+ *  'loja_propria' — nunca hardcoded no site. */
+export async function getPetMiniaturePricing(): Promise<PetMiniaturePricing> {
+  const semPinturaId = process.env.PET_MINIATURE_PRODUCT_ID_SEM_PINTURA;
+  const comPinturaId = process.env.PET_MINIATURE_PRODUCT_ID_COM_PINTURA;
+  const ids = [semPinturaId, comPinturaId].filter((v): v is string => Boolean(v));
+  if (ids.length === 0) return { semPinturaCents: null, comPinturaCents: null };
+
+  const db = getServiceClient();
+  const { data, error } = await db
+    .from("product_channel_listings")
+    .select("product_id, listed_price")
+    .eq("channel", SITE_CHANNEL)
+    .eq("is_active", true)
+    .in("product_id", ids);
+  if (error) throw new Error(`Falha ao carregar preços da miniatura de pet: ${error.message}`);
+
+  const priceByProduct = new Map(
+    (data ?? []).map((l) => [l.product_id as string, Math.round(Number(l.listed_price) * 100)]),
+  );
+  return {
+    semPinturaCents: semPinturaId ? priceByProduct.get(semPinturaId) ?? null : null,
+    comPinturaCents: comPinturaId ? priceByProduct.get(comPinturaId) ?? null : null,
+  };
+}
+
 export async function getProductById(id: string): Promise<Product | null> {
   if (!UUID_RE.test(id)) return null;
   const db = getServiceClient();
@@ -325,9 +356,14 @@ async function notifySaleOfPaidOrder(order: Order): Promise<void> {
       totalCents: order.total_cents,
       itemsSummary,
       kind: petRequest ? "pet_miniature" : "catalog",
-      previewImageUrl: petRequest?.generated_image_path
-        ? publicMediaUrl(petRequest.generated_image_path)
-        : null,
+      previewImageUrl: (() => {
+        if (!petRequest) return null;
+        const path =
+          petRequest.selected_variant === "com_pintura"
+            ? petRequest.generated_image_painted_path
+            : petRequest.generated_image_plain_path;
+        return path ? publicMediaUrl(path) : null;
+      })(),
     });
   } catch (err) {
     console.error("[notifySaleOfPaidOrder]", err);

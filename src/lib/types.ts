@@ -62,15 +62,22 @@ export type OrderItem = {
 /** Status do processamento de uma encomenda de miniatura de pet gerada por IA. */
 export type PetMiniatureStatus = "processando" | "pronto" | "falhou";
 
-/** Encomenda de miniatura de pet — fotos do cliente, prévia gerada por IA e,
- *  depois de aprovada, o pedido de pagamento vinculado (order_id). */
+/** Variante escolhida pelo cliente na aprovação — cada uma com seu próprio
+ *  produto/preço no catálogo (canal loja_propria). */
+export type PetMiniatureVariant = "sem_pintura" | "com_pintura";
+
+/** Encomenda de miniatura de pet — fotos do cliente, as duas prévias geradas
+ *  por IA (pintada e sem pintura) e, depois de aprovada, a variante escolhida
+ *  e o pedido de pagamento vinculado (order_id). */
 export type PetMiniatureRequest = {
   id: string;
   customer_name: string;
   customer_phone: string;
   photo_paths: string[]; // caminhos no bucket privado
   status: PetMiniatureStatus;
-  generated_image_path: string | null; // caminho no bucket público
+  generated_image_painted_path: string | null; // caminho no bucket público
+  generated_image_plain_path: string | null; // caminho no bucket público
+  selected_variant: PetMiniatureVariant | null;
   ai_error: string | null;
   order_id: string | null;
   created_at: string;

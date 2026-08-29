@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { getServiceClient } from "./supabase/server";
-import type { PetMiniatureRequest, PetMiniatureStatus } from "./types";
+import type { PetMiniatureRequest, PetMiniatureStatus, PetMiniatureVariant } from "./types";
 
 /** Fotos originais do cliente — nunca públicas, só leitura via service role. */
 const PHOTOS_BUCKET = "pet-photos";
@@ -111,29 +111,56 @@ export async function markProcessing(id: string): Promise<void> {
     .eq("id", id);
 }
 
-export async function markReady(
+async function uploadPreview(
+  db: ReturnType<typeof getServiceClient>,
   id: string,
+  variant: "painted" | "plain",
   image: { mimeType: string; base64: string },
-): Promise<void> {
-  const db = getServiceClient();
-  const path = `${id}/preview-${Date.now()}.${extFor(image.mimeType)}`;
-  const { error: upErr } = await db.storage
+): Promise<string> {
+  const path = `${id}/preview-${variant}-${Date.now()}.${extFor(image.mimeType)}`;
+  const { error } = await db.storage
     .from(MEDIA_BUCKET)
     .upload(path, Buffer.from(image.base64, "base64"), {
       contentType: image.mimeType,
       upsert: true,
     });
-  if (upErr) throw new Error(`Falha ao salvar prévia gerada: ${upErr.message}`);
+  if (error) throw new Error(`Falha ao salvar prévia gerada: ${error.message}`);
+  return path;
+}
+
+export async function markReady(
+  id: string,
+  images: {
+    painted: { mimeType: string; base64: string };
+    plain: { mimeType: string; base64: string };
+  },
+): Promise<void> {
+  const db = getServiceClient();
+  const [paintedPath, plainPath] = await Promise.all([
+    uploadPreview(db, id, "painted", images.painted),
+    uploadPreview(db, id, "plain", images.plain),
+  ]);
 
   const { error } = await db
     .from("pet_miniature_requests")
     .update({
       status: "pronto" satisfies PetMiniatureStatus,
-      generated_image_path: path,
+      generated_image_painted_path: paintedPath,
+      generated_image_plain_path: plainPath,
       ai_error: null,
     })
     .eq("id", id);
   if (error) throw new Error(`Falha ao atualizar encomenda: ${error.message}`);
+}
+
+/** Grava a variante escolhida pelo cliente na aprovação (define o preço/produto). */
+export async function setSelectedVariant(id: string, variant: PetMiniatureVariant): Promise<void> {
+  const db = getServiceClient();
+  const { error } = await db
+    .from("pet_miniature_requests")
+    .update({ selected_variant: variant })
+    .eq("id", id);
+  if (error) throw new Error(`Falha ao registrar a variante escolhida: ${error.message}`);
 }
 
 export async function markFailed(id: string, message: string): Promise<void> {
