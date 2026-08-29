@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
-import { formatBRL, SHIPPING_CENTS } from "@/lib/money";
+import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS } from "@/lib/money";
 import QtyStepper from "./QtyStepper";
 
 export default function CartView() {
@@ -81,7 +81,7 @@ export default function CartView() {
         </div>
         <div className="mb-3.5 flex justify-between font-sans text-sm font-medium text-charcoal">
           <span>Frete</span>
-          <span>{formatBRL(SHIPPING_CENTS)}</span>
+          <span>{FRETE_ENABLED ? formatBRL(SHIPPING_CENTS) : "combinado à parte"}</span>
         </div>
         <div className="mb-6 h-0.5 bg-charcoal/20" />
         <div className="mb-6 flex justify-between font-heading text-xl font-extrabold text-charcoal">

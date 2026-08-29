@@ -7,10 +7,23 @@ import {
   getPetMiniatureStatus,
   requestPetMiniatureRetry,
 } from "@/app/actions/pet-miniature";
-import { formatBRL } from "@/lib/money";
+import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS } from "@/lib/money";
 import type { PetMiniatureStatus, PetMiniatureVariant } from "@/lib/types";
 
 const POLL_MS = 3000;
+
+/** Preço da variante. Com a flag de frete ligada, mostra "R$ 75,00 + R$ 18,00
+ *  de frete" ao lado do preço; desligada, avisa que o frete é combinado à parte. */
+function PriceLine({ cents }: { cents: number }) {
+  return (
+    <p className="font-sans text-sm text-charcoal/60">
+      {formatBRL(cents)}{" "}
+      <span className="text-charcoal/45">
+        {FRETE_ENABLED ? `+ ${formatBRL(SHIPPING_CENTS)} de frete` : "+ frete à parte"}
+      </span>
+    </p>
+  );
+}
 
 type Props = {
   requestId: string;
@@ -149,9 +162,7 @@ export default function PetMiniaturePreview({
           )}
           <div>
             <p className="font-heading font-bold text-charcoal">Sem pintura</p>
-            {semPinturaCents != null && (
-              <p className="font-sans text-sm text-charcoal/60">{formatBRL(semPinturaCents)}</p>
-            )}
+            {semPinturaCents != null && <PriceLine cents={semPinturaCents} />}
           </div>
           <button
             type="button"
@@ -177,9 +188,7 @@ export default function PetMiniaturePreview({
           )}
           <div>
             <p className="font-heading font-bold text-charcoal">Com pintura</p>
-            {comPinturaCents != null && (
-              <p className="font-sans text-sm text-charcoal/60">{formatBRL(comPinturaCents)}</p>
-            )}
+            {comPinturaCents != null && <PriceLine cents={comPinturaCents} />}
           </div>
           <button
             type="button"

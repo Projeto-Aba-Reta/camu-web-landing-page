@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
-import { formatBRL, SHIPPING_CENTS } from "@/lib/money";
+import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS } from "@/lib/money";
 import { createCheckout } from "@/app/actions/orders";
 
 const STEPS = ["Carrinho", "Endereço", "Pagamento", "Confirmação"];
@@ -127,7 +127,7 @@ export default function CheckoutForm({ initialError }: { initialError?: string }
           </div>
           <div className="mb-3.5 flex justify-between font-sans text-sm font-medium text-charcoal">
             <span>Frete</span>
-            <span>{formatBRL(SHIPPING_CENTS)}</span>
+            <span>{FRETE_ENABLED ? formatBRL(SHIPPING_CENTS) : "combinado à parte"}</span>
           </div>
           <div className="mb-3.5 h-0.5 bg-charcoal/15" />
           <div className="mb-6 flex justify-between font-heading text-lg font-extrabold text-charcoal">
