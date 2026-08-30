@@ -47,6 +47,7 @@ function extFor(mimeType: string): string {
 export async function createPetMiniatureRequest(input: {
   name: string;
   phone: string;
+  email: string;
   photos: IncomingPhoto[];
 }): Promise<PetMiniatureRequest> {
   const db = getServiceClient();
@@ -68,6 +69,7 @@ export async function createPetMiniatureRequest(input: {
       id,
       customer_name: input.name,
       customer_phone: input.phone,
+      customer_email: input.email.trim().toLowerCase(),
       photo_paths: photoPaths,
       status: "processando" satisfies PetMiniatureStatus,
     })
@@ -175,6 +177,20 @@ export async function linkOrder(id: string, orderId: string): Promise<void> {
   const db = getServiceClient();
   const { error } = await db.from("pet_miniature_requests").update({ order_id: orderId }).eq("id", id);
   if (error) throw new Error(`Falha ao vincular pedido: ${error.message}`);
+}
+
+/** Encomendas de miniatura de pet feitas com um e-mail (área "minha conta"). */
+export async function getPetMiniatureRequestsByEmail(
+  email: string,
+): Promise<PetMiniatureRequest[]> {
+  const db = getServiceClient();
+  const { data, error } = await db
+    .from("pet_miniature_requests")
+    .select("*")
+    .ilike("customer_email", email)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`Falha ao buscar encomendas: ${error.message}`);
+  return (data ?? []) as PetMiniatureRequest[];
 }
 
 /** Usada pela notificação de venda pra saber se um pedido veio desse fluxo. */

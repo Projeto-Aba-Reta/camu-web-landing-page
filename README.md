@@ -41,7 +41,8 @@ src/
     sitemap.ts / robots.ts
     (store)/          route group da loja (não afeta a URL) — layout com
                       StoreNav + Footer. Telas: loja, loja/[id], carrinho,
-                      checkout, pedido/[code], pedido/confirmado/[code], encomenda
+                      checkout, pedido/[code], pedido/confirmado/[code], encomenda,
+                      miniatura-pet, login, conta (login por magic link)
     actions/          server actions (orders.ts, custom-orders.ts)
     api/webhooks/mercadopago/route.ts   webhook de pagamento
   components/

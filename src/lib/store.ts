@@ -282,6 +282,54 @@ export async function getOrderByCode(code: string): Promise<
   };
 }
 
+export type OrderWithEvents = OrderWithItems & {
+  events: { status: string; note: string | null; created_at: string }[];
+};
+
+/** Todos os pedidos da loja feitos com um e-mail (área "minha conta"). */
+export async function getOrdersByEmail(email: string): Promise<OrderWithEvents[]> {
+  const db = getServiceClient();
+  const { data: orders, error } = await db
+    .from("orders")
+    .select("*")
+    .ilike("customer_email", email)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`Falha ao buscar pedidos: ${error.message}`);
+  const rows = (orders ?? []) as Order[];
+  if (rows.length === 0) return [];
+
+  const ids = rows.map((o) => o.id);
+  const [{ data: items }, { data: events }] = await Promise.all([
+    db.from("order_items").select("*").in("order_id", ids),
+    db
+      .from("order_events")
+      .select("order_id, status, note, created_at")
+      .in("order_id", ids)
+      .order("created_at", { ascending: true }),
+  ]);
+
+  const itemsByOrder = new Map<string, OrderItem[]>();
+  for (const it of (items ?? []) as (OrderItem & { order_id: string })[]) {
+    const list = itemsByOrder.get(it.order_id) ?? [];
+    list.push(it);
+    itemsByOrder.set(it.order_id, list);
+  }
+  const eventsByOrder = new Map<string, OrderWithEvents["events"]>();
+  for (const ev of (events ?? []) as (OrderWithEvents["events"][number] & {
+    order_id: string;
+  })[]) {
+    const list = eventsByOrder.get(ev.order_id) ?? [];
+    list.push({ status: ev.status, note: ev.note, created_at: ev.created_at });
+    eventsByOrder.set(ev.order_id, list);
+  }
+
+  return rows.map((order) => ({
+    order,
+    items: itemsByOrder.get(order.id) ?? [],
+    events: eventsByOrder.get(order.id) ?? [],
+  }));
+}
+
 // ----------------------------------------------------------------------------
 // Pagamento
 // ----------------------------------------------------------------------------

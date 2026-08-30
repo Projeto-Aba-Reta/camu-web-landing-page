@@ -1,7 +1,12 @@
 "use server";
 
-import { createOrder, setOrderPreference, type IncomingItem } from "@/lib/store";
-import { createPreference } from "@/lib/mercadopago";
+import {
+  createOrder,
+  setOrderPreference,
+  applyPaymentStatus,
+  type IncomingItem,
+} from "@/lib/store";
+import { createPreference, paymentBypassEnabled, orderConfirmedUrl } from "@/lib/mercadopago";
 
 export type CheckoutInput = {
   items: IncomingItem[];
@@ -47,6 +52,16 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutResu
         uf: (c.uf ?? "").trim(),
       },
     });
+
+    // Dev: pula o Mercado Pago e marca o pedido como pago na hora.
+    if (paymentBypassEnabled()) {
+      await applyPaymentStatus(order.order_code, "approved", null);
+      return {
+        ok: true,
+        orderCode: order.order_code,
+        initPoint: orderConfirmedUrl(order.order_code),
+      };
+    }
 
     const { preferenceId, initPoint } = await createPreference({
       orderCode: order.order_code,

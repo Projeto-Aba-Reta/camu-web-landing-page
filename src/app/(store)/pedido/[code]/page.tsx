@@ -4,6 +4,7 @@ import { getOrderByCode } from "@/lib/store";
 import { statusLabel, timelineIndex } from "@/lib/status";
 import type { OrderStatus } from "@/lib/types";
 import OrderTimeline from "@/components/store/OrderTimeline";
+import OrderTimelineVertical from "@/components/store/OrderTimelineVertical";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +63,14 @@ export default async function AcompanharPage({ params }: { params: Promise<Param
           Este pedido foi cancelado. Se acha que é engano, fala com a gente.
         </div>
       ) : (
-        <OrderTimeline currentIndex={currentIndex} stepDates={stepDates} />
+        <>
+          <div className="sm:hidden">
+            <OrderTimelineVertical currentIndex={currentIndex} stepDates={stepDates} />
+          </div>
+          <div className="hidden sm:block">
+            <OrderTimeline currentIndex={currentIndex} stepDates={stepDates} />
+          </div>
+        </>
       )}
 
       <div className="mt-12 flex flex-wrap items-center justify-between gap-4 rounded-2xl border-[3px] border-charcoal bg-offwhite-2 px-6 py-5">

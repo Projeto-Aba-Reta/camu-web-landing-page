@@ -73,6 +73,7 @@ export type PetMiniatureRequest = {
   id: string;
   customer_name: string;
   customer_phone: string;
+  customer_email: string | null;
   photo_paths: string[]; // caminhos no bucket privado
   status: PetMiniatureStatus;
   generated_image_painted_path: string | null; // caminho no bucket público

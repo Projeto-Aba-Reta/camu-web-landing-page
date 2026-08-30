@@ -11,8 +11,12 @@ mesmo projeto Supabase, sempre pelo servidor usando a service role.
     `20260722120000_pedidos_loja_e_canal_site.sql` no admin).
   - `custom_orders` — leads de encomenda personalizada.
   - `pet_miniature_requests` — encomendas de miniatura de pet gerada por IA (fotos,
-    status, imagem gerada, `order_id`). Schema de referência em
+    status, imagem gerada, `order_id`, `customer_email`). Schema de referência em
     `pet-miniature-schema.sql` — aplicar no admin, não é migration deste repo.
+  - `customer_magic_tokens` — magic links de login do site (área `/conta`); o
+    campo `customer_email` em `pet_miniature_requests` também entra aqui. Schema
+    de referência em `customer-magic-auth-schema.sql` — aplicar no admin. A
+    sessão do cliente é cookie assinado (HMAC), sem tabela.
 - Storage:
   - bucket público `product-media` (fotos das peças, via `product_media.storage_path`).
   - bucket privado `pet-photos` (fotos originais enviadas pelo cliente, só service role lê).

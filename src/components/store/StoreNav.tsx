@@ -47,6 +47,13 @@ export default function StoreNav({ showCart = true }: { showCart?: boolean }) {
             ))}
           </ul>
 
+          <Link
+            href="/conta"
+            className="rounded-full border-2 border-charcoal bg-transparent px-4 py-2 font-heading text-[13px] font-bold text-charcoal transition-colors hover:bg-charcoal/5"
+          >
+            Conta
+          </Link>
+
           {showCart && (
             <Link
               href="/carrinho"

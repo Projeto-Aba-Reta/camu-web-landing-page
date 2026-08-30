@@ -67,6 +67,20 @@ export default function PetMiniatureIntakeForm() {
     <form action={onSubmit} className="flex flex-col gap-4">
       <input name="name" required placeholder="Nome" className={inputClass} />
       <input name="phone" required placeholder="WhatsApp" className={inputClass} />
+      <div>
+        <input
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="E-mail"
+          className={inputClass}
+        />
+        <p className="mt-1.5 font-sans text-[11px] text-charcoal/50">
+          É por ele que você acompanha o pedido e o status — a gente manda um link
+          de acesso, sem senha.
+        </p>
+      </div>
 
       <div>
         <div className="mb-2.5 flex items-baseline justify-between">

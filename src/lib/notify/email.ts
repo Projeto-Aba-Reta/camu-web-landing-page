@@ -37,10 +37,12 @@ export const emailChannel: SaleNotificationChannel = {
       );
     }
 
+    const replyTo = process.env.EMAIL_REPLY_TO;
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
       from,
       to,
+      ...(replyTo ? { replyTo } : {}),
       subject: subject(event),
       html: html(event),
     });
