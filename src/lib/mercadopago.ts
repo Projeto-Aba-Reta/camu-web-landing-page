@@ -14,6 +14,22 @@ export function siteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "http://localhost:3000";
 }
 
+/**
+ * Flag de desenvolvimento: quando `PAYMENTS_SKIP_ENABLED=true` **e** o site está
+ * rodando em localhost, o checkout pula o Mercado Pago e marca o pedido como
+ * pago na hora, redirecionando direto pra página de confirmação. Fora de
+ * localhost a flag é ignorada (nunca pula pagamento em produção).
+ */
+export function paymentBypassEnabled(): boolean {
+  if (process.env.PAYMENTS_SKIP_ENABLED !== "true") return false;
+  return /\/\/(localhost|127\.0\.0\.1)(:|$|\/)/.test(siteUrl());
+}
+
+/** URL da página de confirmação de um pedido (usada no bypass de pagamento). */
+export function orderConfirmedUrl(orderCode: string): string {
+  return `${siteUrl()}/pedido/confirmado/${orderCode}`;
+}
+
 type PreferenceItem = {
   title: string;
   quantity: number;
@@ -39,6 +55,11 @@ export async function createPreference(params: {
     items.push({ title: "Frete", quantity: 1, unit_price: params.shippingReais });
   }
 
+  // O Mercado Pago só aceita `auto_return` / `notification_url` com URL pública
+  // (https, não-localhost). Em dev (localhost) ele responde 400
+  // "auto_return invalid. back_url.success must be defined" — então omitimos.
+  const isPublicUrl = /^https:\/\//.test(base) && !/localhost|127\.0\.0\.1/.test(base);
+
   const result = await preference.create({
     body: {
       items: items.map((it, i) => ({
@@ -57,8 +78,12 @@ export async function createPreference(params: {
         pending: `${base}/pedido/confirmado/${params.orderCode}`,
         failure: `${base}/checkout?erro=pagamento&pedido=${params.orderCode}`,
       },
-      auto_return: "approved",
-      notification_url: `${base}/api/webhooks/mercadopago`,
+      ...(isPublicUrl
+        ? {
+            auto_return: "approved" as const,
+            notification_url: `${base}/api/webhooks/mercadopago`,
+          }
+        : {}),
       statement_descriptor: "CAMU3D",
     },
   });

@@ -1,7 +1,7 @@
 "use server";
 
 import { after } from "next/server";
-import { createPreference } from "@/lib/mercadopago";
+import { createPreference, paymentBypassEnabled, orderConfirmedUrl } from "@/lib/mercadopago";
 import { runPetMiniatureGeneration, retryPetMiniatureGeneration } from "@/lib/pet-miniature-pipeline";
 import {
   createPetMiniatureRequest,
@@ -12,7 +12,13 @@ import {
   validatePhotos,
   type IncomingPhoto,
 } from "@/lib/pet-miniature";
-import { createOrder, getPetMiniaturePricing, setOrderPreference } from "@/lib/store";
+import {
+  applyPaymentStatus,
+  createOrder,
+  getPetMiniaturePricing,
+  setOrderPreference,
+} from "@/lib/store";
+import { isValidEmail } from "@/lib/auth/session";
 import type { PetMiniatureVariant } from "@/lib/types";
 
 export type PetMiniatureIntakeResult =
@@ -25,10 +31,14 @@ export type PetMiniatureIntakeResult =
 export async function submitPetMiniatureIntake(formData: FormData): Promise<PetMiniatureIntakeResult> {
   const name = String(formData.get("name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const files = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
 
-  if (!name || !phone) {
-    return { ok: false, error: "Preencha nome e WhatsApp." };
+  if (!name || !phone || !email) {
+    return { ok: false, error: "Preencha nome, WhatsApp e e-mail." };
+  }
+  if (!isValidEmail(email)) {
+    return { ok: false, error: "Digite um e-mail válido — é por ele que você acompanha o pedido." };
   }
 
   const photos: IncomingPhoto[] = [];
@@ -41,7 +51,7 @@ export async function submitPetMiniatureIntake(formData: FormData): Promise<PetM
   if (validationError) return { ok: false, error: validationError };
 
   try {
-    const request = await createPetMiniatureRequest({ name, phone, photos });
+    const request = await createPetMiniatureRequest({ name, phone, email, photos });
 
     after(() => runPetMiniatureGeneration(request.id));
 
@@ -100,6 +110,38 @@ export type PetMiniatureApprovalResult =
   | { ok: true; initPoint: string }
   | { ok: false; error: string };
 
+/** Endereço de entrega coletado na aprovação. O site busca rua/bairro/cidade
+ *  pelo CEP nos Correios e o cliente confirma; `line` já vem montado
+ *  (logradouro, número, complemento, bairro). Nenhum campo pode ficar vazio;
+ *  e-mail é opcional. */
+export type PetMiniatureAddress = {
+  cep: string;
+  line: string;
+  city: string;
+  uf: string;
+  email?: string;
+};
+
+const CEP_RE = /^\d{5}-?\d{3}$/;
+
+/** O SDK do Mercado Pago rejeita com objetos que não são `instanceof Error`
+ *  (ex.: `{ message, status, cause: [{ description }] }`). Extrai a mensagem
+ *  mais útil pra não cair no genérico "Erro inesperado". */
+function errorMessage(err: unknown): string | null {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === "object") {
+    const e = err as { message?: unknown; cause?: unknown };
+    const cause = Array.isArray(e.cause) ? e.cause[0] : e.cause;
+    const causeMsg =
+      cause && typeof cause === "object"
+        ? (cause as { description?: string }).description
+        : undefined;
+    if (causeMsg) return causeMsg;
+    if (typeof e.message === "string") return e.message;
+  }
+  return null;
+}
+
 const PRODUCT_ID_BY_VARIANT: Record<PetMiniatureVariant, string | undefined> = {
   sem_pintura: process.env.PET_MINIATURE_PRODUCT_ID_SEM_PINTURA,
   com_pintura: process.env.PET_MINIATURE_PRODUCT_ID_COM_PINTURA,
@@ -117,17 +159,31 @@ const VARIANT_LABEL: Record<PetMiniatureVariant, string> = {
 export async function approvePetMiniatureAndPay(
   requestId: string,
   variant: PetMiniatureVariant,
+  address: PetMiniatureAddress,
 ): Promise<PetMiniatureApprovalResult> {
   const productId = PRODUCT_ID_BY_VARIANT[variant];
   if (!productId) {
     return { ok: false, error: "Produto de miniatura de pet ainda não está configurado." };
   }
 
+  const cep = (address?.cep ?? "").trim();
+  if (!CEP_RE.test(cep)) {
+    return { ok: false, error: "Informe um CEP válido (formato 00000-000) para a entrega." };
+  }
+  const line = (address?.line ?? "").trim();
+  const city = (address?.city ?? "").trim();
+  const uf = (address?.uf ?? "").trim();
+  if (!line || !city || !uf) {
+    return { ok: false, error: "Endereço de entrega incompleto — nenhum campo pode ficar vazio." };
+  }
   const request = await getPetMiniatureRequest(requestId);
   if (!request) return { ok: false, error: "Encomenda não encontrada." };
   if (request.status !== "pronto") {
     return { ok: false, error: "A prévia ainda não está pronta pra aprovação." };
   }
+
+  // E-mail vem do intake; o do endereço é só um fallback pra encomendas antigas.
+  const email = (request.customer_email || address?.email || "").trim();
 
   try {
     await setSelectedVariant(requestId, variant);
@@ -136,14 +192,21 @@ export async function approvePetMiniatureAndPay(
       items: [{ productId, variant: VARIANT_LABEL[variant], qty: 1 }],
       customer: {
         name: request.customer_name,
-        email: "",
+        email,
         phone: request.customer_phone,
-        cep: "",
-        line: "",
-        city: "",
-        uf: "",
+        cep,
+        line,
+        city,
+        uf,
       },
     });
+
+    // Dev: pula o Mercado Pago e marca o pedido como pago na hora.
+    if (paymentBypassEnabled()) {
+      await linkOrder(requestId, order.id);
+      await applyPaymentStatus(order.order_code, "approved", null);
+      return { ok: true, initPoint: orderConfirmedUrl(order.order_code) };
+    }
 
     const { preferenceId, initPoint } = await createPreference({
       orderCode: order.order_code,
@@ -153,6 +216,7 @@ export async function approvePetMiniatureAndPay(
         unit_price: it.unit_price_cents / 100,
       })),
       shippingReais: order.shipping_cents / 100,
+      payer: email ? { name: request.customer_name, email } : undefined,
     });
 
     await setOrderPreference(order.id, preferenceId);
@@ -160,7 +224,7 @@ export async function approvePetMiniatureAndPay(
 
     return { ok: true, initPoint };
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Erro inesperado ao gerar o pagamento.";
-    return { ok: false, error: message };
+    console.error("approvePetMiniatureAndPay falhou", err);
+    return { ok: false, error: errorMessage(err) ?? "Erro inesperado ao gerar o pagamento." };
   }
 }
