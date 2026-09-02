@@ -359,6 +359,11 @@ export default function PetMiniaturePreview({
         do seu pet.
       </p>
 
+      <p className="max-w-md font-sans text-sm text-charcoal/60">
+        As prévias são só uma ideia do resultado — detalhes de pintura podem ser ajustados depois
+        do pagamento, numa conversa com a gente pelo WhatsApp.
+      </p>
+
       <div className="flex w-full flex-wrap justify-center gap-6">
         <div className="flex w-full max-w-[260px] flex-col items-center gap-3">
           {plainUrl && (
