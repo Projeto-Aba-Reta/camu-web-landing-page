@@ -19,13 +19,26 @@ const BASE_PROMPT = [
   "estática de estatueta sobre uma base circular simples, fotografada em",
   "estúdio com fundo neutro claro. Não é para ficar fotorrealista — deve",
   "parecer um produto impresso em 3D de verdade, não o animal em si.",
+  "ENQUADRAMENTO PADRONIZADO E IDÊNTICO EM TODAS AS IMAGENS: imagem quadrada",
+  "1:1, câmera na altura da miniatura, de frente, distância fixa, a miniatura",
+  "(incluindo a base) ocupando cerca de 80% da altura do quadro, centralizada,",
+  "com a mesma margem em volta. A miniatura deve ter sempre a MESMA ESCALA",
+  "aparente entre as versões — não dar zoom nem afastar de uma para a outra.",
+  "FIDELIDADE MÁXIMA AO PET REAL: reproduza fielmente todas as características",
+  "físicas visíveis nas fotos — proporções do corpo e do focinho, formato e",
+  "porte das orelhas, comprimento e textura do pelo, cor exata da pelagem e de",
+  "cada marcação, manchas, malhas, listras, pintas, máscara facial, meias nas",
+  "patas, ponta da cauda, cor dos olhos e do focinho, e qualquer traço",
+  "distintivo (cicatriz, pelo torto, heterocromia). Se as fotos mostrarem",
+  "ângulos diferentes, combine as informações para acertar todos os detalhes.",
 ].join(" ");
 
 const PAINTED_PROMPT = [
   BASE_PROMPT,
   "Esta versão é PINTADA À MÃO: cores fiéis à pelagem e às marcações do animal",
   "nas fotos, com acabamento de tinta acrílica bem aplicada, como uma",
-  "miniatura colecionável pintada profissionalmente.",
+  "miniatura colecionável pintada profissionalmente. Cada mancha, malha e",
+  "detalhe de cor deve estar na MESMA POSIÇÃO e proporção que aparece nas fotos.",
 ].join(" ");
 
 const PLAIN_PROMPT = [
@@ -33,7 +46,9 @@ const PLAIN_PROMPT = [
   "Esta versão é SEM PINTURA: uma peça mais simples, direto da impressora,",
   "em plástico fosco de UMA ÚNICA COR sólida e neutra (ex.: cinza, branco ou",
   "bege claro) igual em toda a peça — sem nenhuma cor da pelagem do animal,",
-  "sem pintura, sem detalhes de cor. Mesma pose e forma da versão pintada.",
+  "sem pintura, sem detalhes de cor. Mesma pose, forma, enquadramento e escala",
+  "da versão pintada — o relevo da peça ainda deve deixar ver o pelo, as",
+  "orelhas, o focinho e demais traços físicos do pet, só que sem cor.",
 ].join(" ");
 
 async function generateOne(
@@ -44,6 +59,7 @@ async function generateOne(
 ): Promise<AiImageResult> {
   const response = await ai.models.generateContent({
     model,
+    config: { imageConfig: { aspectRatio: "1:1" } },
     contents: [
       {
         role: "user",
