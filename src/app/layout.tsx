@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Baloo_2, Space_Grotesk } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { CartProvider } from "@/lib/cart-context";
-import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const baloo = Baloo_2({
