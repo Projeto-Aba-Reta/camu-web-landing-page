@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Baloo_2, Space_Grotesk } from "next/font/google";
 import { CartProvider } from "@/lib/cart-context";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const baloo = Baloo_2({
@@ -90,6 +91,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
         <CartProvider>{children}</CartProvider>
+        <Analytics />
       </body>
     </html>
   );
