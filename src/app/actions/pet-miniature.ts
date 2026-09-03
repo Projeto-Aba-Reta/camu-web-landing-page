@@ -32,10 +32,28 @@ export type PetMiniatureIntakeResult =
  *  dispara a geração da prévia em background — a resposta ao cliente não
  *  espera o pipeline de IA terminar. */
 export async function submitPetMiniatureIntake(formData: FormData): Promise<PetMiniatureIntakeResult> {
-  const name = String(formData.get("name") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const files = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
+
+  // Pet 2+: reaproveita nome/WhatsApp/e-mail da 1ª encomenda do carrinho — o
+  // cliente só manda as fotos do próximo pet.
+  const fromRequestId = String(formData.get("fromRequestId") ?? "").trim();
+  let name: string;
+  let phone: string;
+  let email: string;
+
+  if (fromRequestId) {
+    const base = await getPetMiniatureRequest(fromRequestId);
+    if (!base) {
+      return { ok: false, error: "Não achamos a encomenda anterior — recomece informando seus dados." };
+    }
+    name = base.customer_name;
+    phone = base.customer_phone;
+    email = (base.customer_email ?? "").trim().toLowerCase();
+  } else {
+    name = String(formData.get("name") ?? "").trim();
+    phone = String(formData.get("phone") ?? "").trim();
+    email = String(formData.get("email") ?? "").trim().toLowerCase();
+  }
 
   if (!name || !phone || !email) {
     return { ok: false, error: "Preencha nome, WhatsApp e e-mail." };

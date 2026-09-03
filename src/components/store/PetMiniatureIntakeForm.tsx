@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { submitPetMiniatureIntake } from "@/app/actions/pet-miniature";
 import { trackFunnel } from "@/lib/analytics";
 import { formatPhone, isValidPhone, isValidEmail } from "@/lib/contact";
+import { usePetCart } from "@/lib/pet-miniature-cart";
 
 const MIN_PHOTOS = 3;
 const MAX_PHOTOS = 4;
@@ -15,12 +16,18 @@ const inputClass =
 
 export default function PetMiniatureIntakeForm() {
   const router = useRouter();
+  const { items: petCartItems, ready: petCartReady } = usePetCart();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<File[]>([]);
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const startedRef = useRef(false);
+
+  // Pet 2+: já tem miniatura no carrinho → só pedimos as fotos, reaproveitando
+  // nome/WhatsApp/e-mail da 1ª encomenda.
+  const priorLine = petCartItems[0] ?? null;
+  const quickAdd = petCartReady && priorLine != null;
 
   function markStarted() {
     if (startedRef.current) return;
@@ -55,14 +62,16 @@ export default function PetMiniatureIntakeForm() {
   async function onSubmit(formData: FormData) {
     setError(null);
 
-    const email = String(formData.get("email") ?? "").trim();
-    if (!isValidEmail(email)) {
-      setError("Digite um e-mail válido — é por ele que você acompanha o pedido.");
-      return;
-    }
-    if (!isValidPhone(phone)) {
-      setError("Digite um WhatsApp válido: só DDD + número, sem o código do país. Ex.: (11) 91258-1464.");
-      return;
+    if (!quickAdd) {
+      const email = String(formData.get("email") ?? "").trim();
+      if (!isValidEmail(email)) {
+        setError("Digite um e-mail válido — é por ele que você acompanha o pedido.");
+        return;
+      }
+      if (!isValidPhone(phone)) {
+        setError("Digite um WhatsApp válido: só DDD + número, sem o código do país. Ex.: (11) 91258-1464.");
+        return;
+      }
     }
 
     if (photos.length < MIN_PHOTOS) {
@@ -86,36 +95,48 @@ export default function PetMiniatureIntakeForm() {
 
   return (
     <form action={onSubmit} onFocusCapture={markStarted} className="flex flex-col gap-4">
-      <input name="name" required placeholder="Nome" className={inputClass} />
-      <div>
-        <input
-          name="phone"
-          required
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="WhatsApp — (99) 99999-9999"
-          className={inputClass}
-          value={phone}
-          onChange={(e) => setPhone(formatPhone(e.target.value))}
-        />
-        <p className="mt-1.5 font-sans text-[11px] text-charcoal/50">
-          Só o DDD + número, sem o código do país (+55).
-        </p>
-      </div>
-      <div>
-        <input
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          placeholder="E-mail"
-          className={inputClass}
-        />
-        <p className="mt-1.5 font-sans text-[11px] text-charcoal/50">
-          É por ele que você acompanha o pedido e o status — a gente manda um link
-          de acesso, sem senha.
-        </p>
-      </div>
+      {quickAdd ? (
+        <>
+          <input type="hidden" name="fromRequestId" value={priorLine.requestId} />
+          <div className="rounded-xl border-2 border-dashed border-teal bg-teal/10 px-4 py-3 font-sans text-[13px] text-charcoal/75">
+            Outro pet pro mesmo pedido{priorLine.customerEmail ? ` (${priorLine.customerEmail})` : ""} —
+            é só mandar as fotos. Seus dados continuam os mesmos.
+          </div>
+        </>
+      ) : (
+        <>
+          <input name="name" required placeholder="Nome" className={inputClass} />
+          <div>
+            <input
+              name="phone"
+              required
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="WhatsApp — (99) 99999-9999"
+              className={inputClass}
+              value={phone}
+              onChange={(e) => setPhone(formatPhone(e.target.value))}
+            />
+            <p className="mt-1.5 font-sans text-[11px] text-charcoal/50">
+              Só o DDD + número, sem o código do país (+55).
+            </p>
+          </div>
+          <div>
+            <input
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              placeholder="E-mail"
+              className={inputClass}
+            />
+            <p className="mt-1.5 font-sans text-[11px] text-charcoal/50">
+              É por ele que você acompanha o pedido e o status — a gente manda um link
+              de acesso, sem senha.
+            </p>
+          </div>
+        </>
+      )}
 
       <div>
         <div className="mb-2.5 flex items-baseline justify-between">
@@ -182,7 +203,11 @@ export default function PetMiniatureIntakeForm() {
             aria-hidden
           />
         )}
-        {submitting ? "Enviando fotos…" : "Gerar prévia da miniatura →"}
+        {submitting
+          ? "Enviando fotos…"
+          : quickAdd
+            ? "Gerar prévia deste pet →"
+            : "Gerar prévia da miniatura →"}
       </button>
     </form>
   );
