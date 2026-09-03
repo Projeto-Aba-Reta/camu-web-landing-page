@@ -7,6 +7,9 @@ import type { OrderStatus, PetMiniatureRequest } from "./types";
 export type DashboardItem = {
   key: string;
   kind: "loja" | "miniatura";
+  /** "approval" = prévia de miniatura ainda em aprovação (não virou pedido);
+   *  "order" = pedido do pagamento em diante. */
+  stage: "approval" | "order";
   title: string;
   createdAt: string;
   href: string;
@@ -75,6 +78,7 @@ export async function getCustomerDashboard(email: string): Promise<DashboardItem
     items.push({
       key: `order-${o.order.id}`,
       kind: pet ? "miniatura" : "loja",
+      stage: "order",
       title: pet ? "Miniatura do seu pet" : itemsSummary(o) || "Pedido",
       createdAt: o.order.created_at,
       href: `/pedido/${o.order.order_code}`,
@@ -91,6 +95,7 @@ export async function getCustomerDashboard(email: string): Promise<DashboardItem
     items.push({
       key: `pet-${req.id}`,
       kind: "miniatura",
+      stage: "approval",
       title: "Miniatura do seu pet",
       createdAt: req.created_at,
       href: `/miniatura-pet/${req.id}`,

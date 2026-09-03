@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { submitPetMiniatureIntake } from "@/app/actions/pet-miniature";
 import { trackFunnel } from "@/lib/analytics";
+import { formatPhone, isValidPhone, isValidEmail } from "@/lib/contact";
 
 const MIN_PHOTOS = 3;
 const MAX_PHOTOS = 4;
@@ -16,6 +17,7 @@ export default function PetMiniatureIntakeForm() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<File[]>([]);
+  const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const startedRef = useRef(false);
@@ -53,6 +55,16 @@ export default function PetMiniatureIntakeForm() {
   async function onSubmit(formData: FormData) {
     setError(null);
 
+    const email = String(formData.get("email") ?? "").trim();
+    if (!isValidEmail(email)) {
+      setError("Digite um e-mail válido — é por ele que você acompanha o pedido.");
+      return;
+    }
+    if (!isValidPhone(phone)) {
+      setError("Digite um WhatsApp válido com DDD, ex.: +55 (11) 91258-1464.");
+      return;
+    }
+
     if (photos.length < MIN_PHOTOS) {
       setError(`Envie pelo menos ${MIN_PHOTOS} fotos do seu pet.`);
       return;
@@ -75,7 +87,16 @@ export default function PetMiniatureIntakeForm() {
   return (
     <form action={onSubmit} onFocusCapture={markStarted} className="flex flex-col gap-4">
       <input name="name" required placeholder="Nome" className={inputClass} />
-      <input name="phone" required placeholder="WhatsApp" className={inputClass} />
+      <input
+        name="phone"
+        required
+        inputMode="tel"
+        autoComplete="tel"
+        placeholder="WhatsApp — +55 (11) 91258-1464"
+        className={inputClass}
+        value={phone}
+        onChange={(e) => setPhone(formatPhone(e.target.value))}
+      />
       <div>
         <input
           name="email"

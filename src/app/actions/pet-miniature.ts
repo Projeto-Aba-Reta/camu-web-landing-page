@@ -19,6 +19,7 @@ import {
   setOrderPreference,
 } from "@/lib/store";
 import { isValidEmail } from "@/lib/auth/session";
+import { isValidPhone } from "@/lib/contact";
 import type { PetMiniatureVariant } from "@/lib/types";
 
 export type PetMiniatureIntakeResult =
@@ -39,6 +40,9 @@ export async function submitPetMiniatureIntake(formData: FormData): Promise<PetM
   }
   if (!isValidEmail(email)) {
     return { ok: false, error: "Digite um e-mail válido — é por ele que você acompanha o pedido." };
+  }
+  if (!isValidPhone(phone)) {
+    return { ok: false, error: "Digite um WhatsApp válido com DDD, ex.: +55 (11) 91258-1464." };
   }
 
   const photos: IncomingPhoto[] = [];
