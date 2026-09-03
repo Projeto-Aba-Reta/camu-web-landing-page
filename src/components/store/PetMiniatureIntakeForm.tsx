@@ -148,8 +148,14 @@ export default function PetMiniatureIntakeForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="sticker-shadow mt-1.5 rounded-full border-[3px] border-charcoal bg-teal py-4 text-center font-heading font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none disabled:opacity-60"
+        className="sticker-shadow mt-1.5 flex items-center justify-center gap-2.5 rounded-full border-[3px] border-charcoal bg-teal py-4 text-center font-heading font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none disabled:opacity-60"
       >
+        {submitting && (
+          <span
+            className="h-4 w-4 animate-spin rounded-full border-[3px] border-charcoal/25 border-t-charcoal"
+            aria-hidden
+          />
+        )}
         {submitting ? "Enviando fotos…" : "Gerar prévia da miniatura →"}
       </button>
     </form>
