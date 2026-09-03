@@ -4,10 +4,10 @@ Quando um pedido é **pago pela primeira vez** (qualquer gateway: Stripe, Mercad
 Pago ou AbacatePay), o site dispara uma notificação de venda em todos os canais
 configurados. Hoje são dois:
 
-| Canal | Onde chega | Variável de ambiente |
-| --- | --- | --- |
+| Canal           | Onde chega                                             | Variável de ambiente                                        |
+| --------------- | ------------------------------------------------------ | ------------------------------------------------------------ |
 | E-mail (Resend) | `contato@camu3d.com.br` + `camu.3dprint@gmail.com` | `SALE_NOTIFICATION_EMAIL_TO` (lista separada por vírgula) |
-| Slack | canal do workspace da Camu | `SALE_NOTIFICATION_SLACK_WEBHOOK_URL` |
+| Slack           | canal do workspace da Camu                             | `SALE_NOTIFICATION_SLACK_WEBHOOK_URL`                      |
 
 O disparo acontece em `applyPaymentStatus` (`src/lib/store.ts`), que é chamado
 tanto pelos webhooks (`src/app/api/webhooks/{stripe,mercadopago,abacatepay}`)
@@ -27,7 +27,7 @@ Você vai criar **um app** com **dois webhooks** — um para cada canal (dev e
 produção). O webhook do Slack já embute o canal de destino; não dá pra trocar o
 canal pela requisição.
 
-1. Acesse <https://api.slack.com/apps> → **Create New App** → **From scratch**.
+1. Acesse [https://api.slack.com/apps](https://api.slack.com/apps) → **Create New App** → **From scratch**.
 2. Nome: `Camu — Notificações de venda`. Workspace: o da Camu.
 3. No menu lateral, **Incoming Webhooks** → ligue **Activate Incoming Webhooks**.
 4. Clique em **Add New Webhook to Workspace**.
@@ -97,24 +97,42 @@ Em produção o webhook do gateway chega normalmente:
 
 ## Formato da mensagem
 
+A mesma carga de dados vai pro e-mail e pro Slack — tudo que foi coletado do
+cliente, pra atender sem abrir o ERP:
+
 ```
 🛒 Nova venda na Camu — pedido #A1B2C3
-Cliente: Fulano de Tal
-Itens: Leon P (×2), Chaveiro Camu
-Total: R$ 149,90
+Data: 03/09/2026 14:22
+Pagamento: Cartão de crédito · approved
+
+Nome: Fulano de Tal
+E-mail: fulano@email.com
+Telefone: (11) 99999-0000
+Endereço: Rua X, 123 — São Paulo/SP — CEP 01234-567
+
+Itens:
+  • Leon P — Sem pintura ×2 — R$ 59,90
+  • Chaveiro Camu ×1 — R$ 29,90
+Subtotal: R$ 149,70  |  Frete: R$ 19,90  |  Total: R$ 169,60
 ```
 
-Encomendas de miniatura de pet usam 🐾 e anexam a prévia da imagem gerada.
+Encomendas de miniatura de pet usam 🐾, anexam a prévia da imagem gerada e
+acrescentam `Encomenda`, `Variante` e `Fotos enviadas`. Para essas, nome e
+telefone vêm de `pet_miniature_requests` (o e-mail é copiado pro pedido na
+aprovação).
+
+Campos ausentes aparecem como `—` (ex.: encomenda de pet sem endereço de
+entrega, ou pagamento cujo método o gateway não informou).
 
 ---
 
 ## Troubleshooting
 
-| Sintoma | Causa provável |
-| --- | --- |
-| Nada chega no Slack, log `Canal do Slack não configurado` | `SALE_NOTIFICATION_SLACK_WEBHOOK_URL` vazia no ambiente |
-| Log `Slack respondeu 404 no_service` | Webhook revogado/errado — gere outro em api.slack.com/apps |
-| Log `Slack respondeu 403 invalid_token` | URL truncada ou de outro workspace |
-| E-mail chega, Slack não (ou vice-versa) | Canais são independentes; veja o log do canal que falhou |
-| Nada dispara nem no e-mail | O pedido não chegou a `paid` — confira `payment_status` e o webhook do gateway |
-| Notificação duplicada | `applyPaymentStatus` só notifica na 1ª transição `pending → paid`; duplicidade real indica dois pedidos |
+| Sintoma                                                     | Causa provável                                                                                                  |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Nada chega no Slack, log`Canal do Slack não configurado` | `SALE_NOTIFICATION_SLACK_WEBHOOK_URL` vazia no ambiente                                                        |
+| Log`Slack respondeu 404 no_service`                       | Webhook revogado/errado — gere outro em api.slack.com/apps                                                      |
+| Log`Slack respondeu 403 invalid_token`                    | URL truncada ou de outro workspace                                                                               |
+| E-mail chega, Slack não (ou vice-versa)                    | Canais são independentes; veja o log do canal que falhou                                                        |
+| Nada dispara nem no e-mail                                  | O pedido não chegou a`paid` — confira `payment_status` e o webhook do gateway                              |
+| Notificação duplicada                                     | `applyPaymentStatus` só notifica na 1ª transição `pending → paid`; duplicidade real indica dois pedidos |

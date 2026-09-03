@@ -419,24 +419,57 @@ async function notifySaleOfPaidOrder(order: Order): Promise<void> {
       db.from("order_items").select("*").eq("order_id", order.id),
       getPetMiniatureRequestByOrderId(order.id),
     ]);
-    const itemsSummary = ((items ?? []) as OrderItem[])
+    const orderItems = (items ?? []) as OrderItem[];
+    const itemsSummary = orderItems
       .map((it) => `${it.product_name}${it.qty > 1 ? ` (×${it.qty})` : ""}`)
       .join(", ");
 
+    const previewImageUrl = (() => {
+      if (!petRequest) return null;
+      const path =
+        petRequest.selected_variant === "com_pintura"
+          ? petRequest.generated_image_painted_path
+          : petRequest.generated_image_plain_path;
+      return path ? publicMediaUrl(path) : null;
+    })();
+
     await notifySaleChannels({
       orderCode: order.order_code,
-      customerName: order.customer_name,
-      totalCents: order.total_cents,
-      itemsSummary,
       kind: petRequest ? "pet_miniature" : "catalog",
-      previewImageUrl: (() => {
-        if (!petRequest) return null;
-        const path =
-          petRequest.selected_variant === "com_pintura"
-            ? petRequest.generated_image_painted_path
-            : petRequest.generated_image_plain_path;
-        return path ? publicMediaUrl(path) : null;
-      })(),
+      createdAt: order.created_at ?? null,
+      paymentMethod: order.payment_method,
+      paymentStatus: order.payment_status,
+      customer: {
+        // Encomenda de miniatura: nome/telefone ficam na request; e-mail é
+        // copiado pro pedido na aprovação, mas caímos pra request se faltar.
+        name: order.customer_name ?? petRequest?.customer_name ?? null,
+        email: order.customer_email ?? petRequest?.customer_email ?? null,
+        phone: order.customer_phone ?? petRequest?.customer_phone ?? null,
+      },
+      shippingAddress: {
+        line: order.address_line,
+        city: order.address_city,
+        uf: order.address_uf,
+        cep: order.address_cep,
+      },
+      items: orderItems.map((it) => ({
+        name: it.product_name,
+        variant: it.variant,
+        qty: it.qty,
+        unitPriceCents: it.unit_price_cents,
+      })),
+      itemsSummary,
+      subtotalCents: order.subtotal_cents,
+      shippingCents: order.shipping_cents,
+      totalCents: order.total_cents,
+      previewImageUrl,
+      petMiniature: petRequest
+        ? {
+            requestId: petRequest.id,
+            selectedVariant: petRequest.selected_variant,
+            photoCount: petRequest.photo_paths?.length ?? 0,
+          }
+        : null,
     });
   } catch (err) {
     console.error("[notifySaleOfPaidOrder]", err);

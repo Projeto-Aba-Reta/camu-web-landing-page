@@ -1,6 +1,7 @@
 import "server-only";
 import { Resend } from "resend";
 import { formatBRL } from "@/lib/money";
+import { fullAddress, paymentMethodLabel, variantLabel } from "./format";
 import type { SaleEvent, SaleNotificationChannel } from "./types";
 
 function subject(event: SaleEvent): string {
@@ -8,20 +9,58 @@ function subject(event: SaleEvent): string {
   return `${prefix} — pedido #${event.orderCode}`;
 }
 
+function row(label: string, value: string): string {
+  return `<tr><td style="padding:4px 16px 4px 0;color:#666;vertical-align:top;white-space:nowrap">${label}</td><td><strong>${value || "—"}</strong></td></tr>`;
+}
+
 function html(event: SaleEvent): string {
-  const rows = [
-    ["Pedido", `#${event.orderCode}`],
-    ["Cliente", event.customerName ?? "—"],
-    ["Itens", event.itemsSummary],
-    ["Total", formatBRL(event.totalCents)],
-  ];
-  const rowsHtml = rows
-    .map(([label, value]) => `<tr><td style="padding:4px 12px 4px 0;color:#666">${label}</td><td><strong>${value}</strong></td></tr>`)
+  const created = event.createdAt
+    ? new Date(event.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
+    : "—";
+
+  const itemsRows = event.items
+    .map(
+      (it) =>
+        `<tr><td style="padding:2px 12px 2px 0">${it.name}${it.variant ? ` — ${variantLabel(it.variant)}` : ""}</td>` +
+        `<td style="padding:2px 12px 2px 0;text-align:center">×${it.qty}</td>` +
+        `<td style="padding:2px 0;text-align:right">${formatBRL(it.unitPriceCents)}</td></tr>`,
+    )
     .join("");
+
+  const dados = [
+    row("Pedido", `#${event.orderCode}`),
+    row("Data", created),
+    row("Pagamento", `${paymentMethodLabel(event.paymentMethod)} · ${event.paymentStatus}`),
+    row("Nome", event.customer.name ?? ""),
+    row("E-mail", event.customer.email ?? ""),
+    row("Telefone", event.customer.phone ?? ""),
+    row("Endereço", fullAddress(event.shippingAddress)),
+  ];
+
+  if (event.petMiniature) {
+    dados.push(
+      row("Encomenda", `#${event.petMiniature.requestId}`),
+      row("Variante", variantLabel(event.petMiniature.selectedVariant)),
+      row("Fotos enviadas", String(event.petMiniature.photoCount)),
+    );
+  }
+
   const previewHtml = event.previewImageUrl
     ? `<p><img src="${event.previewImageUrl}" alt="Prévia da miniatura" style="max-width:280px;border-radius:12px" /></p>`
     : "";
-  return `<div style="font-family:sans-serif"><h2>Nova venda na Camu</h2><table>${rowsHtml}</table>${previewHtml}</div>`;
+
+  return `<div style="font-family:sans-serif;color:#1b1f1e;max-width:560px">
+    <h2>Nova venda na Camu</h2>
+    <table style="border-collapse:collapse">${dados.join("")}</table>
+    <h3 style="margin-top:24px">Itens</h3>
+    <table style="border-collapse:collapse">${itemsRows}</table>
+    <table style="border-collapse:collapse;margin-top:12px">
+      ${row("Subtotal", formatBRL(event.subtotalCents))}
+      ${row("Frete", formatBRL(event.shippingCents))}
+      ${row("Total", formatBRL(event.totalCents))}
+    </table>
+    ${previewHtml}
+  </div>`;
 }
 
 /** Canal de e-mail — implementação padrão via Resend. */

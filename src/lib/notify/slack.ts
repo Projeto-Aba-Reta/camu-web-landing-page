@@ -1,15 +1,44 @@
 import "server-only";
 import { formatBRL } from "@/lib/money";
+import { fullAddress, paymentMethodLabel, variantLabel } from "./format";
 import type { SaleEvent, SaleNotificationChannel } from "./types";
 
 function text(event: SaleEvent): string {
   const emoji = event.kind === "pet_miniature" ? "🐾" : "🛒";
+  const created = event.createdAt
+    ? new Date(event.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
+    : "—";
+
+  const itemLines = event.items
+    .map(
+      (it) =>
+        `  • ${it.name}${it.variant ? ` — ${variantLabel(it.variant)}` : ""} ×${it.qty} — ${formatBRL(it.unitPriceCents)}`,
+    )
+    .join("\n");
+
   const lines = [
     `${emoji} *Nova venda na Camu* — pedido \`#${event.orderCode}\``,
-    `*Cliente:* ${event.customerName ?? "—"}`,
-    `*Itens:* ${event.itemsSummary || "—"}`,
-    `*Total:* ${formatBRL(event.totalCents)}`,
+    `*Data:* ${created}`,
+    `*Pagamento:* ${paymentMethodLabel(event.paymentMethod)} · ${event.paymentStatus}`,
+    "",
+    `*Nome:* ${event.customer.name ?? "—"}`,
+    `*E-mail:* ${event.customer.email ?? "—"}`,
+    `*Telefone:* ${event.customer.phone ?? "—"}`,
+    `*Endereço:* ${fullAddress(event.shippingAddress) || "—"}`,
+    "",
+    `*Itens:*\n${itemLines || "  —"}`,
+    `*Subtotal:* ${formatBRL(event.subtotalCents)}  |  *Frete:* ${formatBRL(event.shippingCents)}  |  *Total:* ${formatBRL(event.totalCents)}`,
   ];
+
+  if (event.petMiniature) {
+    lines.push(
+      "",
+      `*Encomenda:* \`#${event.petMiniature.requestId}\``,
+      `*Variante:* ${variantLabel(event.petMiniature.selectedVariant)}`,
+      `*Fotos enviadas:* ${event.petMiniature.photoCount}`,
+    );
+  }
+
   return lines.join("\n");
 }
 
@@ -26,11 +55,9 @@ export const slackChannel: SaleNotificationChannel = {
       );
     }
 
+    const body = text(event);
     const blocks = [
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: text(event) },
-      },
+      { type: "section", text: { type: "mrkdwn", text: body } },
       ...(event.previewImageUrl
         ? [
             {
@@ -45,7 +72,7 @@ export const slackChannel: SaleNotificationChannel = {
     const res = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: text(event), blocks }),
+      body: JSON.stringify({ text: body, blocks }),
     });
     if (!res.ok) {
       throw new Error(`Slack respondeu ${res.status}: ${await res.text()}`);

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOrderByCode, reconcileOrderPayment } from "@/lib/store";
+import { getPetMiniatureRequestByOrderId } from "@/lib/pet-miniature";
 import { formatBRL } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,18 @@ export default async function ConfirmadoPage({ params }: { params: Promise<Param
 
   const approved = order.payment_status === "approved";
   const pending = order.payment_status === "pending" || order.payment_status === "in_process";
+
+  // Miniatura de pet na versão pintada: convidamos o cliente a contar pelo
+  // WhatsApp os detalhes que não podem faltar (cor de coleira, mancha, olhos…).
+  const petRequest = await getPetMiniatureRequestByOrderId(order.id);
+  const isPaintedPetMiniature =
+    approved && petRequest?.selected_variant === "com_pintura";
+
+  const waNumber = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "").replace(/\D/g, "");
+  const paintedWaUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(
+    `Olá! Fiz o pedido #${order.order_code} da miniatura pintada do meu pet. ` +
+      `Quero contar os detalhes que não podem faltar na pintura:`,
+  )}`;
 
   return (
     <section className="mx-auto flex max-w-3xl flex-col items-center px-6 py-16 text-center sm:px-10">
@@ -77,6 +90,27 @@ export default async function ConfirmadoPage({ params }: { params: Promise<Param
           <span>5-7 dias úteis</span>
         </div>
       </div>
+
+      {isPaintedPetMiniature && (
+        <div className="mb-8 w-full max-w-md rounded-2xl border-[3px] border-charcoal bg-teal/15 p-6 text-left">
+          <div className="mb-1.5 font-heading text-[15px] font-bold text-charcoal">
+            Detalhes da pintura 🎨
+          </div>
+          <p className="mb-4 font-sans text-[13.5px] leading-relaxed text-charcoal/70">
+            Sua miniatura vai ser pintada à mão. Chama a gente no WhatsApp e conta
+            o que <strong>não pode faltar</strong> no seu pet — cor da coleira,
+            aquela manchinha característica, o tom certo do pelo, os olhos…
+          </p>
+          <a
+            href={paintedWaUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="sticker-shadow inline-block rounded-full border-[3px] border-charcoal bg-teal px-6 py-3 font-heading text-[13.5px] font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none"
+          >
+            Contar os detalhes no WhatsApp
+          </a>
+        </div>
+      )}
 
       <div className="flex flex-wrap justify-center gap-3.5">
         <Link
