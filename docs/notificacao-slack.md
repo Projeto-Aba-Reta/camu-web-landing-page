@@ -46,6 +46,23 @@ canal pela requisição.
 
 ---
 
+## Marcar alguém na mensagem (opcional)
+
+Defina `SALE_NOTIFICATION_SLACK_MENTION` com o **ID** (não o nome) — ele é
+anexado ao título da mensagem:
+
+- Pessoa: `<@U012ABCDEF>` (perfil da pessoa → **Copy member ID**)
+- Grupo de usuários: `<!subteam^S012ABC>`
+- Canal inteiro: `<!channel>` · Quem está online: `<!here>`
+
+```bash
+SALE_NOTIFICATION_SLACK_MENTION=<@U012ABCDEF>
+```
+
+Escrever `@fulano` literalmente não vira menção via Incoming Webhook.
+
+---
+
 ## Configuração por ambiente
 
 ### Desenvolvimento (local)

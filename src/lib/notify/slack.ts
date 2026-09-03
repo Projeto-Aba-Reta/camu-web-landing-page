@@ -5,6 +5,9 @@ import type { SaleEvent, SaleNotificationChannel } from "./types";
 
 function text(event: SaleEvent): string {
   const emoji = event.kind === "pet_miniature" ? "🐾" : "🛒";
+  // Menção opcional no Slack: use o ID, não o nome — ex. `<@U012ABCDEF>`,
+  // `<!subteam^S012ABC>`, `<!here>`. Configure SALE_NOTIFICATION_SLACK_MENTION.
+  const mention = process.env.SALE_NOTIFICATION_SLACK_MENTION?.trim();
   const created = event.createdAt
     ? new Date(event.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
     : "—";
@@ -17,7 +20,7 @@ function text(event: SaleEvent): string {
     .join("\n");
 
   const lines = [
-    `${emoji} *Nova venda na Camu* — pedido \`#${event.orderCode}\``,
+    `${emoji} *Nova venda na Camu* — pedido \`#${event.orderCode}\`${mention ? ` ${mention}` : ""}`,
     `*Data:* ${created}`,
     `*Pagamento:* ${paymentMethodLabel(event.paymentMethod)} · ${event.paymentStatus}`,
     "",
