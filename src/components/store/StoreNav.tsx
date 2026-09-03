@@ -73,7 +73,7 @@ export default function StoreNav({ showCart = true }: { showCart?: boolean }) {
             </Link>
           )}
 
-          {showCart && (
+          {showCart && STORE_ENABLED && (
             <Link
               href="/carrinho"
               aria-label={`Carrinho${ready && count > 0 ? `, ${count} itens` : ""}`}
