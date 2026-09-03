@@ -61,7 +61,7 @@ export default function PetMiniatureIntakeForm() {
       return;
     }
     if (!isValidPhone(phone)) {
-      setError("Digite um WhatsApp válido com DDD, ex.: +55 (11) 91258-1464.");
+      setError("Digite um WhatsApp válido: só DDD + número, sem o código do país. Ex.: (11) 91258-1464.");
       return;
     }
 
@@ -87,16 +87,21 @@ export default function PetMiniatureIntakeForm() {
   return (
     <form action={onSubmit} onFocusCapture={markStarted} className="flex flex-col gap-4">
       <input name="name" required placeholder="Nome" className={inputClass} />
-      <input
-        name="phone"
-        required
-        inputMode="tel"
-        autoComplete="tel"
-        placeholder="WhatsApp — +55 (11) 91258-1464"
-        className={inputClass}
-        value={phone}
-        onChange={(e) => setPhone(formatPhone(e.target.value))}
-      />
+      <div>
+        <input
+          name="phone"
+          required
+          inputMode="tel"
+          autoComplete="tel"
+          placeholder="WhatsApp — (99) 99999-9999"
+          className={inputClass}
+          value={phone}
+          onChange={(e) => setPhone(formatPhone(e.target.value))}
+        />
+        <p className="mt-1.5 font-sans text-[11px] text-charcoal/50">
+          Só o DDD + número, sem o código do país (+55).
+        </p>
+      </div>
       <div>
         <input
           name="email"
