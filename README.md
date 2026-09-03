@@ -82,6 +82,29 @@ public/images/           assets do Leon (mascote)
 
 > Passo a passo completo de webhooks, URLs de redirect, túnel local e cartões de teste: [`docs/configuracao-pagamentos.md`](docs/configuracao-pagamentos.md).
 
+### Cartões de teste
+
+Com o gateway em modo de teste (`sk_test_...` / credenciais de teste do MP). Qualquer data de validade futura, qualquer CVC, qualquer CEP.
+
+**Stripe** (<https://docs.stripe.com/testing>):
+
+| Cenário | Número |
+|---|---|
+| Aprovado (Visa) | `4242 4242 4242 4242` |
+| Aprovado (Mastercard) | `5555 5555 5555 4444` |
+| Requer autenticação 3D Secure | `4000 0025 0000 3155` |
+| Recusado (genérico) | `4000 0000 0000 0002` |
+| Recusado — fundos insuficientes | `4000 0000 0000 9995` |
+| Recusado — cartão expirado | `4000 0000 0000 0069` |
+
+**Mercado Pago** (<https://www.mercadopago.com.br/developers/pt/docs/checkout-pro/additional-content/your-integrations/test/cards>): use o nome do titular pra forçar o resultado — `APRO` (aprovado), `OTHE` (recusado genérico), `FUND` (fundos insuficientes), `CALL` (validação), `SECU` (3D Secure).
+
+| Bandeira | Número | CVC | Validade |
+|---|---|---|---|
+| Mastercard | `5031 4332 1540 6351` | `123` | `11/30` |
+| Visa | `4235 6477 2802 5682` | `123` | `11/30` |
+| Elo | `5067 7667 8388 8311` | `123` | `11/30` |
+
 > Segurança: toda escrita no banco acontece no servidor com a service role (que ignora a RLS por role do ERP). Nunca exponha `SUPABASE_SERVICE_ROLE_KEY`, `MP_ACCESS_TOKEN` nem `STRIPE_SECRET_KEY` no browser.
 
 ## Conteúdo placeholder
