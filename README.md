@@ -1,6 +1,6 @@
 # camu-web-landing-page
 
-Site da **Camu**, empresa brasileira de impressão 3D sob medida, servido em `www.camu.com.br`. Tem a home institucional **e uma loja própria** com fluxo de compra completo (catálogo → produto → carrinho → checkout → confirmação → acompanhamento), backend em **Supabase** e pagamento via **Mercado Pago** (Pix + cartão). Os marketplaces (Mercado Livre, Shopee, Elo7, Etsy) continuam como canal de venda adicional. Encomendas personalizadas (sob medida) têm um fluxo próprio que termina no WhatsApp.
+Site da **Camu**, empresa brasileira de impressão 3D sob medida, servido em `www.camu.com.br`. Tem a home institucional **e uma loja própria** com fluxo de compra completo (catálogo → produto → carrinho → checkout → confirmação → acompanhamento), backend em **Supabase** e pagamento via **Mercado Pago** ou **Stripe** (gateway plugável por `.env`). Os marketplaces (Mercado Livre, Shopee, Elo7, Etsy) continuam como canal de venda adicional. Encomendas personalizadas (sob medida) têm um fluxo próprio que termina no WhatsApp.
 
 ## Sobre a marca
 
@@ -28,7 +28,7 @@ O design de origem (todas as opções de estilo exploradas) vive no projeto Clau
 - [Tailwind CSS v4](https://tailwindcss.com) (tema via `@theme` em `src/app/globals.css`, sem `tailwind.config.js`)
 - `next/image` para otimização de imagens, `next/font` para as fontes
 - [Supabase](https://supabase.com) (Postgres) para catálogo, pedidos e leads
-- [Mercado Pago](https://www.mercadopago.com.br/developers) Checkout Pro para pagamento (Pix + cartão)
+- Pagamento por gateway plugável (`PAYMENT_GATEWAY`): [Mercado Pago](https://www.mercadopago.com.br/developers) Checkout Pro (Pix + cartão) ou [Stripe](https://stripe.com/docs) Checkout
 
 ## Estrutura
 
@@ -44,7 +44,7 @@ src/
                       checkout, pedido/[code], pedido/confirmado/[code], encomenda,
                       miniatura-pet, login, conta (login por magic link)
     actions/          server actions (orders.ts, custom-orders.ts)
-    api/webhooks/mercadopago/route.ts   webhook de pagamento
+    api/webhooks/{mercadopago,stripe}/route.ts   webhooks de pagamento
   components/
     (home)            uma section por arquivo (Navbar, Hero, About, Catalog, …)
     store/            componentes da loja (StoreNav, CatalogClient, CartView,
@@ -53,7 +53,7 @@ src/
     data.ts           conteúdo estruturado da home (placeholder, ver abaixo)
     supabase/server.ts  client service-role (server-only)
     store.ts          camada de dados da loja (produtos, pedidos)
-    mercadopago.ts    integração Mercado Pago
+    payments/         gateway plugável (interface + mercadopago + stripe)
     cart-context.tsx  carrinho client-side (localStorage)
     money.ts / status.ts / types.ts
 supabase/                 schema NÃO mora aqui — é do ERP camu-web-admin.
@@ -67,18 +67,22 @@ public/images/           assets do Leon (mascote)
 > e as tabelas de pedido criadas na migration `20260722120000_pedidos_loja_e_canal_site.sql`).
 > Aqui a gente só **lê** catálogo e **escreve** pedidos/leads, sempre pelo servidor.
 
-## Configuração (Supabase + Mercado Pago)
+## Configuração (Supabase + gateway de pagamento)
 
 1. Copie `.env.example` para `.env.local` e preencha:
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` — **os mesmos** do `camu-web-admin/.env.local` (é o mesmo projeto).
-   - `MP_ACCESS_TOKEN` (Mercado Pago → suas credenciais; use o de **teste** em dev pra não gerar cobrança real).
+   - `PAYMENT_GATEWAY` — `mercadopago` (padrão) ou `stripe`. Escolhe qual gateway processa os checkouts; os dois ficam no código.
+   - **Mercado Pago:** `MP_ACCESS_TOKEN` (credenciais → use o de **teste** em dev pra não gerar cobrança real).
+   - **Stripe:** `STRIPE_SECRET_KEY` (`sk_test_...` em dev) e `STRIPE_WEBHOOK_SECRET` (signing secret do endpoint de webhook / `stripe listen`).
    - `NEXT_PUBLIC_SITE_URL` (ex.: `http://localhost:3000` em dev; o domínio em produção).
    - `NEXT_PUBLIC_WHATSAPP_NUMBER` (só dígitos, com DDI+DDD).
-2. **Aplique a migration de pedidos no banco** (no repo `camu-web-admin`): `supabase db push`, ou cole `supabase/migrations/20260722120000_pedidos_loja_e_canal_site.sql` no SQL Editor. Ela cria `orders`/`order_items`/`order_events`/`custom_orders` e adiciona o canal `loja_propria`.
+2. **Aplique a migration de pedidos no banco** (no repo `camu-web-admin`): `supabase db push`, ou cole `supabase/migrations/20260722120000_pedidos_loja_e_canal_site.sql` no SQL Editor. Ela cria `orders`/`order_items`/`order_events`/`custom_orders` e adiciona o canal `loja_propria`. (Trocar de gateway não exige migration — o id da sessão reaproveita a coluna `orders.mp_preference_id`.)
 3. **Publique produtos na loja:** cada peça precisa estar `ativa` e ter um `product_channel_listings` com `channel = 'loja_propria'` e `is_active = true` (o preço do site é o `listed_price`). Para testar rápido em dev, rode `supabase/dev-seed-loja-propria.sql`.
-4. Em produção, cadastre a **notification_url** no painel do Mercado Pago apontando para `{SITE_URL}/api/webhooks/mercadopago`. Em localhost o webhook não é alcançável, mas a página de confirmação reconcilia o pagamento sozinha.
+4. Em produção, cadastre o **webhook** do gateway ativo apontando para `{SITE_URL}/api/webhooks/mercadopago` ou `{SITE_URL}/api/webhooks/stripe`. Em localhost o webhook não é alcançável (use `stripe listen` no caso do Stripe), mas a página de confirmação reconcilia o pagamento sozinha.
 
-> Segurança: toda escrita no banco acontece no servidor com a service role (que ignora a RLS por role do ERP). Nunca exponha `SUPABASE_SERVICE_ROLE_KEY` nem `MP_ACCESS_TOKEN` no browser.
+> Passo a passo completo de webhooks, URLs de redirect, túnel local e cartões de teste: [`docs/configuracao-pagamentos.md`](docs/configuracao-pagamentos.md).
+
+> Segurança: toda escrita no banco acontece no servidor com a service role (que ignora a RLS por role do ERP). Nunca exponha `SUPABASE_SERVICE_ROLE_KEY`, `MP_ACCESS_TOKEN` nem `STRIPE_SECRET_KEY` no browser.
 
 ## Conteúdo placeholder
 

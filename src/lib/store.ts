@@ -2,7 +2,7 @@ import "server-only";
 import { track } from "@vercel/analytics/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getServiceClient } from "./supabase/server";
-import { findPaymentByOrderCode } from "./mercadopago";
+import { activeGatewayId, getPaymentGateway } from "./payments";
 import { SHIPPING_CENTS } from "./money";
 import { notifySaleChannels } from "./notify";
 import { getPetMiniatureRequestByOrderId, publicMediaUrl } from "./pet-miniature";
@@ -239,7 +239,7 @@ export async function createOrder(input: {
       address_line: input.customer.line,
       address_city: input.customer.city,
       address_uf: input.customer.uf,
-      payment_method: "mercadopago",
+      payment_method: activeGatewayId(),
       payment_status: "pending",
       status: "pending",
       subtotal_cents: subtotal,
@@ -444,13 +444,23 @@ async function notifySaleOfPaidOrder(order: Order): Promise<void> {
 }
 
 /**
- * Reconcilia o pagamento consultando o Mercado Pago pelo external_reference.
+ * Reconcilia o pagamento consultando direto a API do gateway ativo.
  * Útil quando o webhook não chega (localhost) — chamado na página de confirmação.
  */
 export async function reconcileOrderPayment(code: string): Promise<void> {
   try {
-    const found = await findPaymentByOrderCode(code);
-    if (found) await applyPaymentStatus(code, found.status, found.id);
+    const db = getServiceClient();
+    const { data: order } = await db
+      .from("orders")
+      .select("order_code, mp_preference_id")
+      .eq("order_code", code)
+      .maybeSingle();
+    if (!order) return;
+
+    const found = await getPaymentGateway().reconcile(
+      order as { order_code: string; mp_preference_id: string | null },
+    );
+    if (found) await applyPaymentStatus(code, found.status, found.paymentId);
   } catch {
     // Reconciliação é best-effort; o webhook ainda cobre o caso normal.
   }

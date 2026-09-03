@@ -1,5 +1,13 @@
 import "server-only";
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
+import {
+  isPublicUrl,
+  siteUrl,
+  type CheckoutSession,
+  type CreateCheckoutParams,
+  type PaymentGateway,
+  type PaymentResult,
+} from "./common";
 
 /** Client Mercado Pago (server-only). Usa o Access Token do vendedor. */
 function getClient(): MercadoPagoConfig {
@@ -10,43 +18,12 @@ function getClient(): MercadoPagoConfig {
   return new MercadoPagoConfig({ accessToken });
 }
 
-export function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "http://localhost:3000";
-}
-
-/**
- * Flag de desenvolvimento: quando `PAYMENTS_SKIP_ENABLED=true` **e** o site está
- * rodando em localhost, o checkout pula o Mercado Pago e marca o pedido como
- * pago na hora, redirecionando direto pra página de confirmação. Fora de
- * localhost a flag é ignorada (nunca pula pagamento em produção).
- */
-export function paymentBypassEnabled(): boolean {
-  if (process.env.PAYMENTS_SKIP_ENABLED !== "true") return false;
-  return /\/\/(localhost|127\.0\.0\.1)(:|$|\/)/.test(siteUrl());
-}
-
-/** URL da página de confirmação de um pedido (usada no bypass de pagamento). */
-export function orderConfirmedUrl(orderCode: string): string {
-  return `${siteUrl()}/pedido/confirmado/${orderCode}`;
-}
-
-type PreferenceItem = {
-  title: string;
-  quantity: number;
-  unit_price: number; // em reais (não centavos)
-};
-
 /**
  * Cria uma preferência de Checkout Pro. Pix + cartão ficam disponíveis na
  * tela do Mercado Pago. `orderCode` vira external_reference pra reconciliar
  * depois no webhook / na página de confirmação.
  */
-export async function createPreference(params: {
-  orderCode: string;
-  items: PreferenceItem[];
-  shippingReais: number;
-  payer?: { name?: string; email?: string };
-}): Promise<{ preferenceId: string; initPoint: string }> {
+async function createCheckout(params: CreateCheckoutParams): Promise<CheckoutSession> {
   const preference = new Preference(getClient());
   const base = siteUrl();
 
@@ -58,7 +35,7 @@ export async function createPreference(params: {
   // O Mercado Pago só aceita `auto_return` / `notification_url` com URL pública
   // (https, não-localhost). Em dev (localhost) ele responde 400
   // "auto_return invalid. back_url.success must be defined" — então omitimos.
-  const isPublicUrl = /^https:\/\//.test(base) && !/localhost|127\.0\.0\.1/.test(base);
+  const publicUrl = isPublicUrl(base);
 
   const result = await preference.create({
     body: {
@@ -78,7 +55,7 @@ export async function createPreference(params: {
         pending: `${base}/pedido/confirmado/${params.orderCode}`,
         failure: `${base}/checkout?erro=pagamento&pedido=${params.orderCode}`,
       },
-      ...(isPublicUrl
+      ...(publicUrl
         ? {
             auto_return: "approved" as const,
             notification_url: `${base}/api/webhooks/mercadopago`,
@@ -92,27 +69,70 @@ export async function createPreference(params: {
   if (!result.id || !initPoint) {
     throw new Error("Mercado Pago não retornou init_point");
   }
-  return { preferenceId: String(result.id), initPoint };
+  return { sessionId: String(result.id), initPoint };
 }
 
 /** Detalhes de um pagamento pelo id. */
-export async function getPayment(paymentId: string) {
+async function getPayment(paymentId: string) {
   const payment = new Payment(getClient());
   return payment.get({ id: paymentId });
 }
 
+async function parseWebhook(
+  request: Request,
+): Promise<({ orderCode: string } & PaymentResult) | null> {
+  const url = new URL(request.url);
+  let paymentId = url.searchParams.get("data.id") ?? url.searchParams.get("id") ?? null;
+  const type = url.searchParams.get("type") ?? url.searchParams.get("topic");
+
+  let bodyType = type;
+  if (!paymentId) {
+    const body = (await request.json().catch(() => null)) as
+      | { type?: string; topic?: string; data?: { id?: string | number }; id?: string | number }
+      | null;
+    if (body) {
+      bodyType = body.type ?? body.topic ?? bodyType;
+      paymentId =
+        body.data?.id != null ? String(body.data.id) : body.id != null ? String(body.id) : null;
+    }
+  }
+
+  // Só nos interessa notificação de pagamento.
+  if (bodyType && bodyType !== "payment" && bodyType !== "payment.updated") return null;
+  if (!paymentId) return null;
+
+  const payment = await getPayment(paymentId);
+  const orderCode = payment.external_reference;
+  const status = payment.status;
+  if (!orderCode || !status) return null;
+
+  return { orderCode, status, paymentId: String(payment.id ?? paymentId) };
+}
+
 /**
- * Busca o pagamento mais recente de um pedido (external_reference).
- * Usado pra reconciliar quando o webhook não chega (ex.: localhost).
+ * Reconcilia o pagamento consultando o Mercado Pago pelo external_reference.
+ * Usado quando o webhook não chega (ex.: localhost).
  */
-export async function findPaymentByOrderCode(
-  orderCode: string,
-): Promise<{ id: string; status: string } | null> {
+async function reconcile(order: {
+  order_code: string;
+  mp_preference_id: string | null;
+}): Promise<PaymentResult | null> {
   const payment = new Payment(getClient());
   const res = await payment.search({
-    options: { external_reference: orderCode, sort: "date_created", criteria: "desc" },
+    options: {
+      external_reference: order.order_code,
+      sort: "date_created",
+      criteria: "desc",
+    },
   });
   const first = res.results?.[0];
   if (!first?.id || !first.status) return null;
-  return { id: String(first.id), status: String(first.status) };
+  return { status: String(first.status), paymentId: String(first.id) };
 }
+
+export const mercadoPagoGateway: PaymentGateway = {
+  id: "mercadopago",
+  createCheckout,
+  parseWebhook,
+  reconcile,
+};

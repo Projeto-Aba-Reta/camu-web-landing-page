@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { siteUrl } from "@/lib/mercadopago";
+import { siteUrl } from "@/lib/payments";
 import { createMagicToken } from "@/lib/auth/magic-token";
 import { sendMagicLinkEmail } from "@/lib/auth/send-magic-link";
 import { clearSessionCookie, isValidEmail, normalizeEmail } from "@/lib/auth/session";

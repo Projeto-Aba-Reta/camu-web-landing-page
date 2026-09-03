@@ -8,8 +8,8 @@ export const heroPet = {
   title: ["A miniatura", "do seu pet, em 3D."],
   subtitle:
     "Manda 3 a 4 fotos e recebe uma prévia gerada por IA de como a peça vai ficar impressa. Você só paga se aprovar.",
-  priceFrom: "a partir de R$ 149", // TODO: confirmar preço real
-  leadTime: "pronto em ~7 dias úteis", // TODO: confirmar prazo real
+  priceFrom: "a partir de R$ 60.00", // TODO: confirmar preço real
+  leadTime: "pronto em ~10 dias úteis", // TODO: confirmar prazo real
   previewNote: "prévia grátis antes de pagar",
   primaryCta: { label: "Fazer a miniatura do meu pet", href: "/miniatura-pet" },
   secondaryCtas: [
@@ -20,7 +20,7 @@ export const heroPet = {
 
 /** Passos do fluxo da miniatura de pet — usados na home e em /miniatura-pet. */
 export const petMiniatureSteps = [
-  { n: "1", title: "Você manda as fotos", desc: "Nome, WhatsApp e 3–4 fotos do seu pet." },
+  { n: "1", title: "Você manda as fotos", desc: "Nome, WhatsApp e 3-4 fotos do seu pet." },
   { n: "2", title: "A IA gera a prévia", desc: "Você vê como a miniatura ficaria impressa em 3D." },
   { n: "3", title: "Aprova e paga", desc: "Gostou? Paga no site. Não gostou? A gente tenta de novo." },
 ] as const;
@@ -32,10 +32,7 @@ export type Product = {
 };
 
 export const products: Product[] = [
-  { name: "Miniatura RPG", market: "Elo7", href: "#" },
-  { name: "Action figure geek", market: "Shopee", href: "#" },
   { name: "Suporte gamer", market: "Mercado Livre", href: "#" },
-  { name: "Diorama colecionável", market: "Etsy", href: "#" },
 ];
 
 export type Step = {
@@ -90,7 +87,7 @@ export const trustItems = [
     desc: "Você vê como fica e só fecha se aprovar.",
   },
   {
-    title: "Pronto em ~7 dias úteis", // TODO: confirmar prazo real
+    title: "Pronto em ~10 dias úteis", // TODO: confirmar prazo real
     desc: "Modelagem, impressão e acabamento com capricho.",
   },
   {
@@ -103,7 +100,7 @@ export const trustItems = [
 export const faqItems = [
   {
     q: "Quanto tempo demora pra ficar pronto?",
-    a: "Em média ~7 dias úteis após a aprovação da prévia e a confirmação do pagamento. Peças maiores ou com pintura detalhada podem levar um pouco mais — a gente avisa antes.", // TODO: confirmar prazo real
+    a: "Em média ~10 dias úteis após a aprovação da prévia e a confirmação do pagamento. Peças maiores ou com pintura detalhada podem levar um pouco mais — a gente avisa antes.", // TODO: confirmar prazo real
   },
   {
     q: "De que material são feitas as peças?",
@@ -121,7 +118,8 @@ export const faqItems = [
 
 /** Texto de prazo/frete exibido nos cards do catálogo. */
 export const catalogInfo = {
-  leadTime: "produção em ~7 dias úteis", // TODO: confirmar prazo real
+  price: "a partir de R$ 60.00",
+  leadTime: "produção em ~10 dias úteis", // TODO: confirmar prazo real
   shipping: "frete calculado no checkout",
 } as const;
 

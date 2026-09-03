@@ -1,7 +1,7 @@
 "use server";
 
 import { after } from "next/server";
-import { createPreference, paymentBypassEnabled, orderConfirmedUrl } from "@/lib/mercadopago";
+import { getPaymentGateway, paymentBypassEnabled, orderConfirmedUrl } from "@/lib/payments";
 import { runPetMiniatureGeneration, retryPetMiniatureGeneration } from "@/lib/pet-miniature-pipeline";
 import {
   createPetMiniatureRequest,
@@ -208,7 +208,7 @@ export async function approvePetMiniatureAndPay(
       return { ok: true, initPoint: orderConfirmedUrl(order.order_code) };
     }
 
-    const { preferenceId, initPoint } = await createPreference({
+    const { sessionId, initPoint } = await getPaymentGateway().createCheckout({
       orderCode: order.order_code,
       items: items.map((it) => ({
         title: it.product_name,
@@ -219,7 +219,7 @@ export async function approvePetMiniatureAndPay(
       payer: email ? { name: request.customer_name, email } : undefined,
     });
 
-    await setOrderPreference(order.id, preferenceId);
+    await setOrderPreference(order.id, sessionId);
     await linkOrder(requestId, order.id);
 
     return { ok: true, initPoint };

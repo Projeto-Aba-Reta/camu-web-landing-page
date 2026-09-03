@@ -6,7 +6,7 @@ import {
   applyPaymentStatus,
   type IncomingItem,
 } from "@/lib/store";
-import { createPreference, paymentBypassEnabled, orderConfirmedUrl } from "@/lib/mercadopago";
+import { getPaymentGateway, paymentBypassEnabled, orderConfirmedUrl } from "@/lib/payments";
 
 export type CheckoutInput = {
   items: IncomingItem[];
@@ -63,7 +63,7 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutResu
       };
     }
 
-    const { preferenceId, initPoint } = await createPreference({
+    const { sessionId, initPoint } = await getPaymentGateway().createCheckout({
       orderCode: order.order_code,
       items: items.map((it) => ({
         title: it.variant ? `${it.product_name} (${it.variant})` : it.product_name,
@@ -74,7 +74,7 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutResu
       payer: { name: c.name.trim(), email: c.email.trim() },
     });
 
-    await setOrderPreference(order.id, preferenceId);
+    await setOrderPreference(order.id, sessionId);
 
     return { ok: true, orderCode: order.order_code, initPoint };
   } catch (err) {
