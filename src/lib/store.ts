@@ -10,6 +10,17 @@ import type { Order, OrderItem, OrderStatus, Product } from "./types";
 const SITE_CHANNEL = "loja_propria";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Produtos da miniatura de pet: têm listing 'loja_propria' só pra fornecer preço
+ *  à tela /miniatura-pet — não devem aparecer no catálogo geral da loja. */
+function petMiniatureProductIds(): Set<string> {
+  return new Set(
+    [
+      process.env.PET_MINIATURE_PRODUCT_ID_SEM_PINTURA,
+      process.env.PET_MINIATURE_PRODUCT_ID_COM_PINTURA,
+    ].filter((v): v is string => Boolean(v)),
+  );
+}
+
 // ----------------------------------------------------------------------------
 // Catálogo (lê o schema do ERP: products + product_channel_listings + product_media)
 // ----------------------------------------------------------------------------
@@ -65,8 +76,11 @@ export async function getProducts(): Promise<Product[]> {
     .eq("is_active", true);
   if (lErr) throw new Error(`Falha ao carregar preços da loja: ${lErr.message}`);
 
+  const petIds = petMiniatureProductIds();
   const priceByProduct = new Map<string, number>(
-    (listings ?? []).map((l) => [l.product_id as string, Number(l.listed_price)]),
+    (listings ?? [])
+      .filter((l) => !petIds.has(l.product_id as string))
+      .map((l) => [l.product_id as string, Number(l.listed_price)]),
   );
   const ids = [...priceByProduct.keys()];
   if (ids.length === 0) return [];
@@ -118,6 +132,7 @@ export async function getPetMiniaturePricing(): Promise<PetMiniaturePricing> {
 
 export async function getProductById(id: string): Promise<Product | null> {
   if (!UUID_RE.test(id)) return null;
+  if (petMiniatureProductIds().has(id)) return null; // vendido só pela tela /miniatura-pet
   const db = getServiceClient();
 
   const { data: product, error } = await db
