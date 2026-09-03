@@ -19,3 +19,14 @@ export const SHIPPING_FEE_CENTS = 1800;
 
 /** Frete efetivamente somado ao pedido: 0 quando a flag está desligada. */
 export const SHIPPING_CENTS = FRETE_ENABLED ? SHIPPING_FEE_CENTS : 0;
+
+/** UFs do Sul e Sudeste — regiões com frete incluso na miniatura de pet. */
+const FRETE_INCLUSO_UFS = new Set([
+  "SP", "RJ", "MG", "ES", // Sudeste
+  "PR", "SC", "RS",       // Sul
+]);
+
+/** true quando a UF de entrega está no Sul ou Sudeste (frete incluso). */
+export function isFreteInclusoUF(uf: string): boolean {
+  return FRETE_INCLUSO_UFS.has(uf.trim().toUpperCase());
+}

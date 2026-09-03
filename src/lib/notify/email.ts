@@ -38,10 +38,12 @@ function html(event: SaleEvent): string {
   ];
 
   if (event.petMiniature) {
+    const pm = event.petMiniature;
     dados.push(
-      row("Encomenda", `#${event.petMiniature.requestId}`),
-      row("Variante", variantLabel(event.petMiniature.selectedVariant)),
-      row("Fotos enviadas", String(event.petMiniature.photoCount)),
+      row("Encomenda", `#${pm.requestId}`),
+      row("Miniaturas no pedido", String(pm.requestCount)),
+      row("Variante", pm.selectedVariant === "Variadas" ? "Variadas" : variantLabel(pm.selectedVariant)),
+      row("Fotos enviadas", String(pm.photoCount)),
     );
   }
 
@@ -57,6 +59,7 @@ function html(event: SaleEvent): string {
     <table style="border-collapse:collapse;margin-top:12px">
       ${row("Subtotal", formatBRL(event.subtotalCents))}
       ${row("Frete", formatBRL(event.shippingCents))}
+      ${event.discountCents > 0 ? row("Desconto", `−${formatBRL(event.discountCents)}`) : ""}
       ${row("Total", formatBRL(event.totalCents))}
     </table>
     ${previewHtml}

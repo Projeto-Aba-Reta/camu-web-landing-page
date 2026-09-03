@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOrderByCode, reconcileOrderPayment } from "@/lib/store";
-import { getPetMiniatureRequestByOrderId } from "@/lib/pet-miniature";
+import { getPetMiniatureRequestsByOrderId } from "@/lib/pet-miniature";
 import { formatBRL } from "@/lib/money";
 import { STORE_ENABLED } from "@/lib/features";
 
@@ -30,9 +30,9 @@ export default async function ConfirmadoPage({ params }: { params: Promise<Param
 
   // Miniatura de pet na versão pintada: convidamos o cliente a contar pelo
   // WhatsApp os detalhes que não podem faltar (cor de coleira, mancha, olhos…).
-  const petRequest = await getPetMiniatureRequestByOrderId(order.id);
+  const petRequests = await getPetMiniatureRequestsByOrderId(order.id);
   const isPaintedPetMiniature =
-    approved && petRequest?.selected_variant === "com_pintura";
+    approved && petRequests.some((r) => r.selected_variant === "com_pintura");
 
   const waNumber = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "").replace(/\D/g, "");
   const paintedWaUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(
@@ -78,6 +78,12 @@ export default async function ConfirmadoPage({ params }: { params: Promise<Param
       </p>
 
       <div className="mb-8 w-full max-w-md rounded-2xl border-[3px] border-charcoal bg-offwhite-2 p-6 text-left">
+        {order.discount_cents > 0 && (
+          <div className="mb-2.5 flex justify-between font-sans text-sm font-medium text-teal-dark">
+            <span>Desconto promoção</span>
+            <span>−{formatBRL(order.discount_cents)}</span>
+          </div>
+        )}
         <div className="mb-2.5 flex justify-between font-sans text-sm font-medium text-charcoal">
           <span>Total</span>
           <span className="font-heading text-[15px] font-bold">{formatBRL(order.total_cents)}</span>

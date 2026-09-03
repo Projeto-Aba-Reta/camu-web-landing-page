@@ -10,6 +10,7 @@ export type FunnelEvent =
   | "intake_iniciado"
   | "intake_enviado"
   | "previa_aprovada"
+  | "previa_adicionada_carrinho"
   | "previa_retentativa"
   | "checkout_iniciado"
   | "pedido_pago";
@@ -25,6 +26,7 @@ const POSTHOG_EVENT_MAP: Record<FunnelEvent, string> = {
   intake_iniciado: "intake_started",
   intake_enviado: "intake_submitted",
   previa_aprovada: "preview_approved",
+  previa_adicionada_carrinho: "preview_added_to_cart",
   previa_retentativa: "preview_retry_requested",
   checkout_iniciado: "checkout_started",
   pedido_pago: "payment_completed",

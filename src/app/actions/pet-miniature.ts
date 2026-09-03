@@ -20,7 +20,8 @@ import {
 } from "@/lib/store";
 import { isValidEmail } from "@/lib/auth/session";
 import { isValidPhone } from "@/lib/contact";
-import type { PetMiniatureVariant } from "@/lib/types";
+import { computePetCartPricing } from "@/lib/pet-miniature-cart-pricing";
+import type { PetMiniatureRequest, PetMiniatureVariant } from "@/lib/types";
 import { getPostHogClient } from "@/lib/posthog-server";
 
 export type PetMiniatureIntakeResult =
@@ -174,18 +175,30 @@ const VARIANT_LABEL: Record<PetMiniatureVariant, string> = {
   com_pintura: "Com pintura",
 };
 
-/** Aprova a prévia pronta, grava a variante escolhida (sem pintura / com
- *  pintura) e cria o pedido/preferência de pagamento. O preço vem sempre do
- *  listing do produto correspondente no catálogo (canal `loja_propria`) —
- *  nunca de um valor calculado aqui. */
-export async function approvePetMiniatureAndPay(
-  requestId: string,
-  variant: PetMiniatureVariant,
+export type PetMiniatureCartItem = {
+  requestId: string;
+  variant: PetMiniatureVariant;
+};
+
+/** Aprova um carrinho de miniaturas (uma ou várias, uma por pet), grava a
+ *  variante escolhida de cada uma, aplica a promoção "leve 2" e cria **um**
+ *  pedido com todos os itens + preferência de pagamento. Os preços vêm sempre
+ *  dos listings do canal `loja_propria` — o desconto é recalculado aqui, nunca
+ *  confiando no que o client mandou. */
+export async function approvePetMiniatureCartAndPay(
+  cartItems: PetMiniatureCartItem[],
   address: PetMiniatureAddress,
 ): Promise<PetMiniatureApprovalResult> {
-  const productId = PRODUCT_ID_BY_VARIANT[variant];
-  if (!productId) {
-    return { ok: false, error: "Produto de miniatura de pet ainda não está configurado." };
+  // Dedup por encomenda (a última variante escolhida vence).
+  const byRequest = new Map<string, PetMiniatureVariant>();
+  for (const it of cartItems ?? []) {
+    if (it?.requestId && (it.variant === "sem_pintura" || it.variant === "com_pintura")) {
+      byRequest.set(it.requestId, it.variant);
+    }
+  }
+  const entries = [...byRequest.entries()];
+  if (entries.length === 0) {
+    return { ok: false, error: "Seu carrinho de miniaturas está vazio." };
   }
 
   const cep = (address?.cep ?? "").trim();
@@ -198,24 +211,61 @@ export async function approvePetMiniatureAndPay(
   if (!line || !city || !uf) {
     return { ok: false, error: "Endereço de entrega incompleto — nenhum campo pode ficar vazio." };
   }
-  const request = await getPetMiniatureRequest(requestId);
-  if (!request) return { ok: false, error: "Encomenda não encontrada." };
-  if (request.status !== "pronto") {
-    return { ok: false, error: "A prévia ainda não está pronta pra aprovação." };
+
+  for (const variant of entries.map(([, v]) => v)) {
+    if (!PRODUCT_ID_BY_VARIANT[variant]) {
+      return { ok: false, error: "Produto de miniatura de pet ainda não está configurado." };
+    }
   }
 
-  // E-mail vem do intake; o do endereço é só um fallback pra encomendas antigas.
-  const email = (request.customer_email || address?.email || "").trim();
+  // Carrega e valida cada encomenda.
+  const requests = await Promise.all(entries.map(([id]) => getPetMiniatureRequest(id)));
+  const loaded: { id: string; variant: PetMiniatureVariant; request: PetMiniatureRequest }[] = [];
+  for (let i = 0; i < entries.length; i++) {
+    const [id, variant] = entries[i];
+    const request = requests[i];
+    if (!request) return { ok: false, error: "Uma das encomendas não foi encontrada." };
+    if (request.status !== "pronto") {
+      return { ok: false, error: "Uma das prévias ainda não está pronta pra aprovação." };
+    }
+    if (request.order_id) {
+      return { ok: false, error: "Uma das miniaturas já foi comprada — remova-a do carrinho." };
+    }
+    loaded.push({ id, variant, request });
+  }
+
+  // Preço de cada variante vem do canal loja_propria.
+  const pricing = await getPetMiniaturePricing();
+  const priceOf = (v: PetMiniatureVariant) =>
+    v === "com_pintura" ? pricing.comPinturaCents : pricing.semPinturaCents;
+  if (loaded.some((l) => priceOf(l.variant) == null)) {
+    return { ok: false, error: "Preço da miniatura indisponível no momento. Tente de novo em instantes." };
+  }
+
+  // Promoção "leve 2": recalculada no servidor a partir dos preços reais.
+  const cartPricing = computePetCartPricing(
+    loaded.map((l) => ({ key: l.id, unitPriceCents: priceOf(l.variant) as number })),
+  );
+  const netByKey = new Map(cartPricing.lines.map((l) => [l.key, l.netPriceCents]));
+
+  // Identidade do pedido: a primeira encomenda do carrinho.
+  const primary = loaded[0].request;
+  const email = (primary.customer_email || address?.email || "").trim();
 
   try {
-    await setSelectedVariant(requestId, variant);
+    await Promise.all(loaded.map((l) => setSelectedVariant(l.id, l.variant)));
 
-    const { order, items } = await createOrder({
-      items: [{ productId, variant: VARIANT_LABEL[variant], qty: 1 }],
+    const { order } = await createOrder({
+      items: loaded.map((l) => ({
+        productId: PRODUCT_ID_BY_VARIANT[l.variant] as string,
+        variant: VARIANT_LABEL[l.variant],
+        qty: 1,
+      })),
+      discountCents: cartPricing.discountCents,
       customer: {
-        name: request.customer_name,
+        name: primary.customer_name,
         email,
-        phone: request.customer_phone,
+        phone: primary.customer_phone,
         cep,
         line,
         city,
@@ -223,30 +273,33 @@ export async function approvePetMiniatureAndPay(
       },
     });
 
-    // Dev: pula o Mercado Pago e marca o pedido como pago na hora.
+    // Dev: pula o gateway e marca como pago na hora.
     if (paymentBypassEnabled()) {
-      await linkOrder(requestId, order.id);
+      await Promise.all(loaded.map((l) => linkOrder(l.id, order.id)));
       await applyPaymentStatus(order.order_code, "approved", null);
       return { ok: true, initPoint: orderConfirmedUrl(order.order_code) };
     }
 
+    // Itens do checkout com o preço LÍQUIDO (já com desconto) — o gateway não
+    // recebe um total à parte, então a soma das linhas precisa fechar com o
+    // total do pedido.
     const { sessionId, initPoint } = await getPaymentGateway().createCheckout({
       orderCode: order.order_code,
-      items: items.map((it) => ({
-        title: it.product_name,
-        quantity: it.qty,
-        unit_price: it.unit_price_cents / 100,
+      items: loaded.map((l) => ({
+        title: `Miniatura do seu pet — ${VARIANT_LABEL[l.variant]}`,
+        quantity: 1,
+        unit_price: (netByKey.get(l.id) ?? (priceOf(l.variant) as number)) / 100,
       })),
       shippingReais: order.shipping_cents / 100,
-      payer: email ? { name: request.customer_name, email } : undefined,
+      payer: email ? { name: primary.customer_name, email } : undefined,
     });
 
     await setOrderPreference(order.id, sessionId);
-    await linkOrder(requestId, order.id);
+    await Promise.all(loaded.map((l) => linkOrder(l.id, order.id)));
 
     return { ok: true, initPoint };
   } catch (err) {
-    console.error("approvePetMiniatureAndPay falhou", err);
+    console.error("approvePetMiniatureCartAndPay falhou", err);
     return { ok: false, error: errorMessage(err) ?? "Erro inesperado ao gerar o pagamento." };
   }
 }

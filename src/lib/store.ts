@@ -5,7 +5,7 @@ import { getServiceClient } from "./supabase/server";
 import { activeGatewayId, getPaymentGateway } from "./payments";
 import { SHIPPING_CENTS } from "./money";
 import { notifySaleChannels } from "./notify";
-import { getPetMiniatureRequestByOrderId, publicMediaUrl } from "./pet-miniature";
+import { getPetMiniatureRequestsByOrderId, publicMediaUrl } from "./pet-miniature";
 import type { Order, OrderItem, OrderStatus, Product } from "./types";
 
 const SITE_CHANNEL = "loja_propria";
@@ -174,6 +174,8 @@ export type OrderWithItems = {
  */
 export async function createOrder(input: {
   items: IncomingItem[];
+  /** Desconto a abater do total (promoções). Fica entre 0 e o subtotal. */
+  discountCents?: number;
   customer: {
     name: string;
     email: string;
@@ -227,7 +229,8 @@ export async function createOrder(input: {
 
   const subtotal = lineItems.reduce((s, it) => s + it.unit_price_cents * it.qty, 0);
   const shipping = SHIPPING_CENTS;
-  const total = subtotal + shipping;
+  const discount = Math.min(Math.max(0, Math.floor(input.discountCents ?? 0)), subtotal);
+  const total = subtotal + shipping - discount;
 
   const { data: orderRow, error: orderErr } = await db
     .from("orders")
@@ -244,6 +247,7 @@ export async function createOrder(input: {
       status: "pending",
       subtotal_cents: subtotal,
       shipping_cents: shipping,
+      discount_cents: discount,
       total_cents: total,
     })
     .select("*")
@@ -415,36 +419,39 @@ export async function applyPaymentStatus(
 async function notifySaleOfPaidOrder(order: Order): Promise<void> {
   try {
     const db = getServiceClient();
-    const [{ data: items }, petRequest] = await Promise.all([
+    const [{ data: items }, petRequests] = await Promise.all([
       db.from("order_items").select("*").eq("order_id", order.id),
-      getPetMiniatureRequestByOrderId(order.id),
+      getPetMiniatureRequestsByOrderId(order.id),
     ]);
     const orderItems = (items ?? []) as OrderItem[];
     const itemsSummary = orderItems
       .map((it) => `${it.product_name}${it.qty > 1 ? ` (×${it.qty})` : ""}`)
       .join(", ");
 
+    const firstPet = petRequests[0] ?? null;
     const previewImageUrl = (() => {
-      if (!petRequest) return null;
+      if (!firstPet) return null;
       const path =
-        petRequest.selected_variant === "com_pintura"
-          ? petRequest.generated_image_painted_path
-          : petRequest.generated_image_plain_path;
+        firstPet.selected_variant === "com_pintura"
+          ? firstPet.generated_image_painted_path
+          : firstPet.generated_image_plain_path;
       return path ? publicMediaUrl(path) : null;
     })();
 
+    const petVariants = new Set(petRequests.map((r) => r.selected_variant));
+
     await notifySaleChannels({
       orderCode: order.order_code,
-      kind: petRequest ? "pet_miniature" : "catalog",
+      kind: firstPet ? "pet_miniature" : "catalog",
       createdAt: order.created_at ?? null,
       paymentMethod: order.payment_method,
       paymentStatus: order.payment_status,
       customer: {
         // Encomenda de miniatura: nome/telefone ficam na request; e-mail é
         // copiado pro pedido na aprovação, mas caímos pra request se faltar.
-        name: order.customer_name ?? petRequest?.customer_name ?? null,
-        email: order.customer_email ?? petRequest?.customer_email ?? null,
-        phone: order.customer_phone ?? petRequest?.customer_phone ?? null,
+        name: order.customer_name ?? firstPet?.customer_name ?? null,
+        email: order.customer_email ?? firstPet?.customer_email ?? null,
+        phone: order.customer_phone ?? firstPet?.customer_phone ?? null,
       },
       shippingAddress: {
         line: order.address_line,
@@ -461,13 +468,15 @@ async function notifySaleOfPaidOrder(order: Order): Promise<void> {
       itemsSummary,
       subtotalCents: order.subtotal_cents,
       shippingCents: order.shipping_cents,
+      discountCents: order.discount_cents ?? 0,
       totalCents: order.total_cents,
       previewImageUrl,
-      petMiniature: petRequest
+      petMiniature: firstPet
         ? {
-            requestId: petRequest.id,
-            selectedVariant: petRequest.selected_variant,
-            photoCount: petRequest.photo_paths?.length ?? 0,
+            requestId: firstPet.id,
+            requestCount: petRequests.length,
+            selectedVariant: petVariants.size === 1 ? firstPet.selected_variant : "Variadas",
+            photoCount: petRequests.reduce((s, r) => s + (r.photo_paths?.length ?? 0), 0),
           }
         : null,
     });

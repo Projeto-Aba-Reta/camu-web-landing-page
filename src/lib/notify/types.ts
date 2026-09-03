@@ -34,12 +34,18 @@ export type SaleEvent = {
   itemsSummary: string; // ex.: "Leon P (×2), Chaveiro Camu"
   subtotalCents: number;
   shippingCents: number;
+  discountCents: number; // desconto de promoção (0 quando não há)
   totalCents: number;
 
   previewImageUrl?: string | null; // só pra encomendas de miniatura de pet
   petMiniature?: {
+    /** Primeira encomenda do pedido (um pedido pode juntar várias miniaturas). */
     requestId: string;
+    /** Quantas miniaturas nesse pedido. */
+    requestCount: number;
+    /** Variante quando todas iguais; "Variadas" quando o pedido mistura. */
     selectedVariant: string | null;
+    /** Total de fotos enviadas (soma de todas as encomendas). */
     photoCount: number;
   } | null;
 };

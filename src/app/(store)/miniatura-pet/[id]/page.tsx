@@ -39,6 +39,8 @@ export default async function MiniaturaPetAcompanharPage({ params }: { params: P
         semPinturaCents={pricing.semPinturaCents}
         comPinturaCents={pricing.comPinturaCents}
         initialError={request.ai_error}
+        customerName={request.customer_name}
+        customerEmail={request.customer_email}
       />
     </section>
   );

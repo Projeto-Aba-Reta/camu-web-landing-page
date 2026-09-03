@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
+import { usePetCart } from "@/lib/pet-miniature-cart";
 import { STORE_ENABLED } from "@/lib/features";
 import MobileMenu from "@/components/MobileMenu";
 
@@ -18,6 +19,7 @@ const mobileLinks = [...links, { label: "Minha conta", href: "/conta" }];
 
 export default function StoreNav({ showCart = true }: { showCart?: boolean }) {
   const { count, ready } = useCart();
+  const { count: petCount, ready: petReady } = usePetCart();
 
   return (
     <header className="sticky top-0 z-50 border-b-[3px] border-charcoal bg-offwhite">
@@ -57,6 +59,19 @@ export default function StoreNav({ showCart = true }: { showCart?: boolean }) {
           >
             Conta
           </Link>
+
+          {petReady && petCount > 0 && (
+            <Link
+              href="/miniatura-pet/carrinho"
+              aria-label={`Carrinho de miniaturas, ${petCount}`}
+              className="sticker-shadow-sm relative rounded-full border-[3px] border-charcoal bg-teal px-5 py-2.5 font-heading text-sm font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none"
+            >
+              Miniaturas
+              <span className="absolute -right-2.5 -top-2.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-offwhite bg-charcoal font-heading text-xs font-extrabold text-teal">
+                {petCount}
+              </span>
+            </Link>
+          )}
 
           {showCart && (
             <Link

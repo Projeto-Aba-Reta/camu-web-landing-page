@@ -193,16 +193,18 @@ export async function getPetMiniatureRequestsByEmail(
   return (data ?? []) as PetMiniatureRequest[];
 }
 
-/** Usada pela notificação de venda pra saber se um pedido veio desse fluxo. */
-export async function getPetMiniatureRequestByOrderId(
+/** Encomendas de miniatura vinculadas a um pedido. Um pedido pode juntar várias
+ *  miniaturas (uma por pet) — daí retornar lista. Usada pela notificação de
+ *  venda e pelas telas de pedido pra saber se veio desse fluxo. */
+export async function getPetMiniatureRequestsByOrderId(
   orderId: string,
-): Promise<PetMiniatureRequest | null> {
+): Promise<PetMiniatureRequest[]> {
   const db = getServiceClient();
   const { data, error } = await db
     .from("pet_miniature_requests")
     .select("*")
     .eq("order_id", orderId)
-    .maybeSingle();
-  if (error) throw new Error(`Falha ao buscar encomenda pelo pedido: ${error.message}`);
-  return (data as PetMiniatureRequest) ?? null;
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(`Falha ao buscar encomendas pelo pedido: ${error.message}`);
+  return (data ?? []) as PetMiniatureRequest[];
 }

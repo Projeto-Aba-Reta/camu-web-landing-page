@@ -23,6 +23,7 @@ export const petMiniatureSteps = [
   { n: "1", title: "Você manda as fotos", desc: "Nome, WhatsApp e 3-4 fotos do seu pet." },
   { n: "2", title: "A IA gera a prévia", desc: "Você vê como a miniatura ficaria impressa em 3D." },
   { n: "3", title: "Aprova e paga", desc: "Gostou? Paga no site. Não gostou? A gente tenta de novo." },
+  { n: "4", title: "Tem mais pets?", desc: "Adicione várias miniaturas no mesmo pedido — cada par sai com desconto." },
 ] as const;
 
 export type Product = {

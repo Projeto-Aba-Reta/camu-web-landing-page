@@ -44,6 +44,7 @@ export type Order = {
   payment_status: string;
   subtotal_cents: number;
   shipping_cents: number;
+  discount_cents: number;
   total_cents: number;
   mp_preference_id: string | null;
   mp_payment_id: string | null;

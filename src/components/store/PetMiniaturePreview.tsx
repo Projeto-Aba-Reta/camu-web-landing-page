@@ -2,26 +2,29 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
-  approvePetMiniatureAndPay,
   getPetMiniatureStatus,
   requestPetMiniatureRetry,
 } from "@/app/actions/pet-miniature";
 import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS } from "@/lib/money";
 import { trackFunnel } from "@/lib/analytics";
-import { isCepComplete, lookupCep } from "@/lib/cep";
+import { usePetCart } from "@/lib/pet-miniature-cart";
 import type { PetMiniatureStatus, PetMiniatureVariant } from "@/lib/types";
 
 const POLL_MS = 3000;
 
 /** Preço da variante. Com a flag de frete ligada, mostra "R$ 75,00 + R$ 18,00
- *  de frete" ao lado do preço; desligada, avisa que o frete é combinado à parte. */
+ *  de frete" ao lado do preço; desligada, lembra que o frete é incluso pra
+ *  Sul e Sudeste (demais regiões, combinado à parte). */
 function PriceLine({ cents }: { cents: number }) {
   return (
     <p className="font-sans text-sm text-charcoal/60">
       {formatBRL(cents)}{" "}
       <span className="text-charcoal/45">
-        {FRETE_ENABLED ? `+ ${formatBRL(SHIPPING_CENTS)} de frete` : "+ frete à parte"}
+        {FRETE_ENABLED
+          ? `+ ${formatBRL(SHIPPING_CENTS)} de frete`
+          : "· frete incluso pra Sul e Sudeste"}
       </span>
     </p>
   );
@@ -35,6 +38,8 @@ type Props = {
   semPinturaCents: number | null;
   comPinturaCents: number | null;
   initialError: string | null;
+  customerName: string | null;
+  customerEmail: string | null;
 };
 
 export default function PetMiniaturePreview({
@@ -45,28 +50,19 @@ export default function PetMiniaturePreview({
   semPinturaCents,
   comPinturaCents,
   initialError,
+  customerName,
+  customerEmail,
 }: Props) {
+  const petCart = usePetCart();
   const [status, setStatus] = useState(initialStatus);
   const [paintedUrl, setPaintedUrl] = useState(initialPaintedPreviewUrl);
   const [plainUrl, setPlainUrl] = useState(initialPlainPreviewUrl);
   const [genError, setGenError] = useState(initialError);
-  const [busyVariant, setBusyVariant] = useState<PetMiniatureVariant | null>(null);
   const [busy, setBusy] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
-  const [chosenVariant, setChosenVariant] = useState<PetMiniatureVariant | null>(null);
-  const [cep, setCep] = useState("");
-  const [street, setStreet] = useState("");
-  const [number, setNumber] = useState("");
-  const [complement, setComplement] = useState("");
-  const [neighborhood, setNeighborhood] = useState("");
-  const [city, setCity] = useState("");
-  const [uf, setUf] = useState("");
-  const [cepState, setCepState] = useState<"idle" | "loading" | "done" | "error">("idle");
-  const [cepError, setCepError] = useState<string | null>(null);
-  const lookedUpCep = useRef<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const addressRevealed = cepState === "done" || cepState === "error";
+  const inCart = petCart.items.find((i) => i.requestId === requestId) ?? null;
 
   useEffect(() => {
     if (status !== "processando") return;
@@ -99,104 +95,22 @@ export default function PetMiniaturePreview({
     }
   }
 
-  function formatCep(value: string) {
-    const digits = value.replace(/\D/g, "").slice(0, 8);
-    return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
+  function centsFor(variant: PetMiniatureVariant): number | null {
+    return variant === "com_pintura" ? comPinturaCents : semPinturaCents;
   }
 
-  function onCepChange(value: string) {
-    const masked = formatCep(value);
-    setCep(masked);
-    if (isCepComplete(masked)) {
-      void resolveCep(masked);
-    } else {
-      setCepState("idle");
-      setCepError(null);
-      lookedUpCep.current = null;
-    }
-  }
-
-  /** Busca o endereço na base dos Correios e preenche os campos, deixando-os
-   *  editáveis. Só refaz a busca se o CEP mudou desde a última consulta. */
-  async function resolveCep(value: string) {
-    const digits = value.replace(/\D/g, "");
-    if (lookedUpCep.current === digits || cepState === "loading") return;
-    lookedUpCep.current = digits;
-    setCepState("loading");
-    setCepError(null);
-    try {
-      const addr = await lookupCep(digits);
-      setStreet(addr.street);
-      setNeighborhood(addr.neighborhood);
-      setCity(addr.city);
-      setUf(addr.uf);
-      setCepState("done");
-    } catch (err) {
-      // Deixa o cliente preencher à mão, mas revela os campos mesmo assim.
-      setCepError(
-        err instanceof Error ? err.message : "Não foi possível buscar o CEP — preencha à mão.",
-      );
-      setCepState("error");
-    }
-  }
-
-  /** 1º passo: cliente escolhe a variante — sem chamar o servidor ainda.
-   *  Só então pedimos o endereço, pra não travar quem só quer ver a prévia. */
-  function onChooseVariant(variant: PetMiniatureVariant) {
-    setChosenVariant(variant);
-    setPayError(null);
-    trackFunnel("previa_aprovada", { variante: variant });
-  }
-
-  /** 2º passo: com a variante já escolhida, valida o endereço e cria o
-   *  pedido/preferência de pagamento. */
-  async function onConfirmAddress() {
-    const variant = chosenVariant;
-    if (!variant) return;
-
-    if (!isCepComplete(cep)) {
-      setPayError("Informe o CEP de entrega (8 dígitos).");
-      return;
-    }
-    if (!addressRevealed) {
-      setPayError("Aguarde a busca do endereço pelo CEP.");
-      return;
-    }
-    const fields = {
-      street: street.trim(),
-      number: number.trim(),
-      neighborhood: neighborhood.trim(),
-      city: city.trim(),
-      uf: uf.trim(),
-    };
-    if (!fields.number) {
-      setPayError("Informe o número do endereço.");
-      return;
-    }
-    if (!fields.street || !fields.neighborhood || !fields.city || !fields.uf) {
-      setPayError("Preencha todos os campos do endereço — nenhum pode ficar vazio.");
-      return;
-    }
-
-    const line = `${fields.street}, ${fields.number}${
-      complement.trim() ? ` - ${complement.trim()}` : ""
-    } - ${fields.neighborhood}`;
-
-    setBusyVariant(variant);
-    setPayError(null);
-    const res = await approvePetMiniatureAndPay(requestId, variant, {
-      cep: cep.trim(),
-      line,
-      city: fields.city,
-      uf: fields.uf,
+  /** Adiciona (ou troca a variante d)esta miniatura no carrinho. */
+  function onAddToCart(variant: PetMiniatureVariant) {
+    const cents = centsFor(variant);
+    petCart.add({
+      requestId,
+      variant,
+      previewUrl: variant === "com_pintura" ? paintedUrl : plainUrl,
+      unitPriceCents: cents ?? 0,
+      customerName,
+      customerEmail,
     });
-    if (res.ok) {
-      trackFunnel("checkout_iniciado", { fluxo: "miniatura_pet" });
-      window.location.href = res.initPoint;
-      return;
-    }
-    setBusyVariant(null);
-    setPayError(res.error);
+    trackFunnel("previa_adicionada_carrinho", { variante: variant });
   }
 
   if (status === "processando") {
@@ -239,120 +153,8 @@ export default function PetMiniaturePreview({
   }
 
   // status === "pronto"
-  const anyBusy = busyVariant !== null || busy;
-  const inputClass =
-    "w-full rounded-xl border-2 border-charcoal bg-offwhite px-4 py-3 font-sans text-sm text-charcoal outline-none placeholder:text-charcoal/45 focus:border-teal-dark";
+  const cartCount = petCart.count;
 
-  // 2º passo: variante escolhida — agora sim pedimos o endereço de entrega.
-  if (chosenVariant) {
-    const priceCents = chosenVariant === "com_pintura" ? comPinturaCents : semPinturaCents;
-    return (
-      <div className="flex flex-col items-center gap-6 text-center">
-        <h2 className="font-heading text-2xl font-extrabold text-charcoal">Endereço de entrega</h2>
-        <p className="max-w-md font-sans text-sm text-charcoal/60">
-          Você escolheu a miniatura{" "}
-          <strong>{chosenVariant === "com_pintura" ? "com pintura" : "sem pintura"}</strong>
-          {priceCents != null && <> — {formatBRL(priceCents)}</>}. Digite o CEP: buscamos o
-          endereço nos Correios e você confere o resto. Preencha o número — nenhum campo pode
-          ficar vazio.
-        </p>
-
-        <div className="w-full max-w-md rounded-2xl border-[3px] border-charcoal bg-offwhite-2 p-5 text-left">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <input
-              inputMode="numeric"
-              placeholder="CEP *"
-              value={cep}
-              onChange={(e) => onCepChange(e.target.value)}
-              onBlur={() => isCepComplete(cep) && void resolveCep(cep)}
-              className={`${inputClass} sm:col-span-2`}
-            />
-
-            {cepState === "loading" && (
-              <p className="font-sans text-xs text-charcoal/55 sm:col-span-2">
-                Buscando endereço nos Correios…
-              </p>
-            )}
-            {cepError && (
-              <p className="font-sans text-xs font-medium text-coral sm:col-span-2">{cepError}</p>
-            )}
-
-            {addressRevealed && (
-              <>
-                <input
-                  placeholder="Rua / logradouro *"
-                  value={street}
-                  onChange={(e) => setStreet(e.target.value)}
-                  className={`${inputClass} sm:col-span-2`}
-                />
-                <input
-                  inputMode="numeric"
-                  placeholder="Número *"
-                  value={number}
-                  onChange={(e) => setNumber(e.target.value)}
-                  className={inputClass}
-                />
-                <input
-                  placeholder="Complemento (opcional)"
-                  value={complement}
-                  onChange={(e) => setComplement(e.target.value)}
-                  className={inputClass}
-                />
-                <input
-                  placeholder="Bairro *"
-                  value={neighborhood}
-                  onChange={(e) => setNeighborhood(e.target.value)}
-                  className={`${inputClass} sm:col-span-2`}
-                />
-                <input
-                  placeholder="Cidade *"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className={inputClass}
-                />
-                <input
-                  placeholder="UF *"
-                  maxLength={2}
-                  value={uf}
-                  onChange={(e) => setUf(e.target.value.toUpperCase())}
-                  className={inputClass}
-                />
-              </>
-            )}
-          </div>
-        </div>
-
-        {payError && (
-          <div className="w-full max-w-sm rounded-xl border-2 border-coral bg-coral/15 px-4 py-3 font-sans text-sm font-medium text-charcoal">
-            {payError}
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={onConfirmAddress}
-          disabled={anyBusy}
-          className="sticker-shadow w-full max-w-sm rounded-full border-[3px] border-charcoal bg-coral py-4 font-heading font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none disabled:opacity-60"
-        >
-          {busyVariant ? "Redirecionando…" : "Ir para o pagamento →"}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setChosenVariant(null);
-            setPayError(null);
-          }}
-          disabled={anyBusy}
-          className="font-heading text-sm font-bold text-charcoal/60 underline underline-offset-4 hover:text-charcoal disabled:opacity-60"
-        >
-          ‹ Voltar às prévias
-        </button>
-      </div>
-    );
-  }
-
-  // 1º passo: só as prévias e a escolha da variante — nada trava quem só quer ver.
   return (
     <div className="flex flex-col items-center gap-6 text-center">
       <h2 className="font-heading text-2xl font-extrabold text-charcoal">
@@ -367,6 +169,10 @@ export default function PetMiniaturePreview({
         As prévias são só uma ideia do resultado — detalhes de pintura podem ser ajustados depois
         do pagamento, numa conversa com a gente pelo WhatsApp.
       </p>
+
+      <div className="w-full max-w-md rounded-2xl border-2 border-dashed border-charcoal/30 bg-offwhite-2 px-4 py-3 font-sans text-[13px] text-charcoal/70">
+        Tem mais de um pet? Adicione várias miniaturas — <strong>cada par sai com desconto</strong>.
+      </div>
 
       <div className="flex w-full flex-wrap justify-center gap-6">
         <div className="flex w-full max-w-[260px] flex-col items-center gap-3">
@@ -387,11 +193,12 @@ export default function PetMiniaturePreview({
           </div>
           <button
             type="button"
-            onClick={() => onChooseVariant("sem_pintura")}
-            disabled={anyBusy}
-            className="w-full rounded-full border-[3px] border-charcoal bg-transparent px-5 py-3 font-heading font-bold text-charcoal transition-colors hover:bg-charcoal/5 disabled:opacity-60"
+            onClick={() => onAddToCart("sem_pintura")}
+            className={`w-full rounded-full border-[3px] border-charcoal px-5 py-3 font-heading font-bold text-charcoal transition-colors hover:bg-charcoal/5 ${
+              inCart?.variant === "sem_pintura" ? "bg-teal" : "bg-transparent"
+            }`}
           >
-            Aprovar sem pintura
+            {inCart?.variant === "sem_pintura" ? "✓ No carrinho" : "Escolher sem pintura"}
           </button>
         </div>
 
@@ -413,19 +220,54 @@ export default function PetMiniaturePreview({
           </div>
           <button
             type="button"
-            onClick={() => onChooseVariant("com_pintura")}
-            disabled={anyBusy}
-            className="sticker-shadow w-full rounded-full border-[3px] border-charcoal bg-teal px-5 py-3 font-heading font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none disabled:opacity-60"
+            onClick={() => onAddToCart("com_pintura")}
+            className={`sticker-shadow w-full rounded-full border-[3px] border-charcoal px-5 py-3 font-heading font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none ${
+              inCart?.variant === "com_pintura" ? "bg-teal" : "bg-teal/40"
+            }`}
           >
-            Aprovar com pintura →
+            {inCart?.variant === "com_pintura" ? "✓ No carrinho" : "Escolher com pintura →"}
           </button>
         </div>
       </div>
 
-      <p className="max-w-sm font-sans text-sm text-charcoal/60">
-        Curtiu? Aprove uma das opções pra seguir pro endereço e pagamento. Se quiser, dá pra
-        gerar outra tentativa antes de decidir.
-      </p>
+      {inCart ? (
+        <div className="flex w-full max-w-md flex-col items-center gap-3 rounded-2xl border-[3px] border-charcoal bg-teal/15 px-5 py-5">
+          <p className="font-heading text-[15px] font-bold text-charcoal">
+            Miniatura adicionada ({inCart.variant === "com_pintura" ? "com pintura" : "sem pintura"})
+          </p>
+          <p className="font-sans text-[13px] text-charcoal/70">
+            {cartCount === 1
+              ? "É só esta no carrinho. Adicione o próximo pet pra ativar o desconto por par."
+              : `${cartCount} miniaturas no carrinho.`}
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link
+              href="/miniatura-pet"
+              className="rounded-full border-[3px] border-charcoal bg-transparent px-5 py-3 font-heading text-[13.5px] font-bold text-charcoal transition-colors hover:bg-charcoal/5"
+            >
+              + Adicionar outro pet
+            </Link>
+            <Link
+              href="/miniatura-pet/carrinho"
+              className="sticker-shadow rounded-full border-[3px] border-charcoal bg-coral px-5 py-3 font-heading text-[13.5px] font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none"
+            >
+              Ir para o carrinho ({cartCount}) →
+            </Link>
+          </div>
+          <button
+            type="button"
+            onClick={() => petCart.remove(requestId)}
+            className="font-heading text-xs font-bold text-charcoal/55 underline underline-offset-4 hover:text-charcoal"
+          >
+            Remover esta do carrinho
+          </button>
+        </div>
+      ) : (
+        <p className="max-w-sm font-sans text-sm text-charcoal/60">
+          Curtiu? Escolha uma das opções pra colocar no carrinho. Se quiser, dá pra gerar outra
+          tentativa antes de decidir.
+        </p>
+      )}
 
       <p className="max-w-sm font-sans text-xs text-charcoal/50">
         Você acompanha esta encomenda e o status pela sua{" "}
@@ -444,7 +286,7 @@ export default function PetMiniaturePreview({
       <button
         type="button"
         onClick={onRetry}
-        disabled={anyBusy}
+        disabled={busy}
         className="rounded-full border-[3px] border-charcoal bg-transparent px-7 py-4 font-heading font-bold text-charcoal transition-colors hover:bg-charcoal/5 disabled:opacity-60"
       >
         Gerar nova tentativa

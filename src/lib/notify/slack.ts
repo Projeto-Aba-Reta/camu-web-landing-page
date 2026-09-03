@@ -30,15 +30,19 @@ function text(event: SaleEvent): string {
     `*Endereço:* ${fullAddress(event.shippingAddress) || "—"}`,
     "",
     `*Itens:*\n${itemLines || "  —"}`,
-    `*Subtotal:* ${formatBRL(event.subtotalCents)}  |  *Frete:* ${formatBRL(event.shippingCents)}  |  *Total:* ${formatBRL(event.totalCents)}`,
+    `*Subtotal:* ${formatBRL(event.subtotalCents)}  |  *Frete:* ${formatBRL(event.shippingCents)}${
+      event.discountCents > 0 ? `  |  *Desconto:* −${formatBRL(event.discountCents)}` : ""
+    }  |  *Total:* ${formatBRL(event.totalCents)}`,
   ];
 
   if (event.petMiniature) {
+    const pm = event.petMiniature;
     lines.push(
       "",
-      `*Encomenda:* \`#${event.petMiniature.requestId}\``,
-      `*Variante:* ${variantLabel(event.petMiniature.selectedVariant)}`,
-      `*Fotos enviadas:* ${event.petMiniature.photoCount}`,
+      `*Encomenda:* \`#${pm.requestId}\`${pm.requestCount > 1 ? ` (+${pm.requestCount - 1} outras miniaturas no pedido)` : ""}`,
+      `*Miniaturas:* ${pm.requestCount}`,
+      `*Variante:* ${pm.selectedVariant === "Variadas" ? "Variadas" : variantLabel(pm.selectedVariant)}`,
+      `*Fotos enviadas:* ${pm.photoCount}`,
     );
   }
 

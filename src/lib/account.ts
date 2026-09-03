@@ -66,26 +66,33 @@ export async function getCustomerDashboard(email: string): Promise<DashboardItem
   ]);
 
   const orderById = new Map(orders.map((o) => [o.order.id, o]));
-  const petByOrderId = new Map(
-    requests.filter((r) => r.order_id).map((r) => [r.order_id as string, r]),
-  );
+  const petsByOrderId = new Map<string, PetMiniatureRequest[]>();
+  for (const r of requests) {
+    if (!r.order_id) continue;
+    const list = petsByOrderId.get(r.order_id) ?? [];
+    list.push(r);
+    petsByOrderId.set(r.order_id, list);
+  }
 
   const items: DashboardItem[] = [];
 
   for (const o of orders) {
     const idx = timelineIndex(o.order.status as OrderStatus);
-    const pet = petByOrderId.get(o.order.id);
+    const pets = petsByOrderId.get(o.order.id) ?? [];
+    const firstPet = pets[0] ?? null;
     items.push({
       key: `order-${o.order.id}`,
-      kind: pet ? "miniatura" : "loja",
+      kind: firstPet ? "miniatura" : "loja",
       stage: "order",
-      title: pet ? "Miniatura do seu pet" : itemsSummary(o) || "Pedido",
+      title: firstPet
+        ? `Miniatura do seu pet${pets.length > 1 ? ` (×${pets.length})` : ""}`
+        : itemsSummary(o) || "Pedido",
       createdAt: o.order.created_at,
       href: `/pedido/${o.order.order_code}`,
       statusLabel: statusLabel(o.order.status as OrderStatus),
       timelineIndex: idx,
       stepDates: stepDatesFor(o, idx),
-      previewImageUrl: pet ? miniaturePreview(pet) : null,
+      previewImageUrl: firstPet ? miniaturePreview(firstPet) : null,
     });
   }
 
