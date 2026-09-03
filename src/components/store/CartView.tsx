@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS } from "@/lib/money";
+import { STORE_ENABLED } from "@/lib/features";
 import QtyStepper from "./QtyStepper";
 
 export default function CartView() {
@@ -19,13 +20,15 @@ export default function CartView() {
           Seu carrinho está vazio
         </h1>
         <p className="mb-7 font-sans text-charcoal/65">
-          Bora escolher umas peças pra imprimir?
+          {STORE_ENABLED
+            ? "Bora escolher umas peças pra imprimir?"
+            : "Que tal fazer a miniatura do seu pet?"}
         </p>
         <Link
-          href="/loja"
+          href={STORE_ENABLED ? "/loja" : "/miniatura-pet"}
           className="sticker-shadow-sm inline-block rounded-full border-[3px] border-charcoal bg-teal px-6 py-3 font-heading font-bold text-charcoal transition-transform hover:-translate-y-0.5"
         >
-          Ver o catálogo →
+          {STORE_ENABLED ? "Ver o catálogo →" : "Fazer a miniatura do meu pet →"}
         </Link>
       </div>
     );

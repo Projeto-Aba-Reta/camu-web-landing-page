@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS } from "@/lib/money";
+import { STORE_ENABLED } from "@/lib/features";
 import { trackFunnel } from "@/lib/analytics";
 import { createCheckout } from "@/app/actions/orders";
 
@@ -23,10 +24,10 @@ export default function CheckoutForm({ initialError }: { initialError?: string }
         <h1 className="mb-3 font-heading text-2xl font-bold text-charcoal">Nada pra finalizar</h1>
         <p className="mb-7 font-sans text-charcoal/65">Seu carrinho está vazio.</p>
         <Link
-          href="/loja"
+          href={STORE_ENABLED ? "/loja" : "/miniatura-pet"}
           className="sticker-shadow-sm inline-block rounded-full border-[3px] border-charcoal bg-teal px-6 py-3 font-heading font-bold text-charcoal"
         >
-          Ver o catálogo →
+          {STORE_ENABLED ? "Ver o catálogo →" : "Fazer a miniatura do meu pet →"}
         </Link>
       </div>
     );

@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
+import { STORE_ENABLED } from "@/lib/features";
 import MobileMenu from "@/components/MobileMenu";
 
 const links = [
-  { label: "Catálogo", href: "/loja" },
+  ...(STORE_ENABLED ? [{ label: "Catálogo", href: "/loja" }] : []),
   { label: "Miniatura do seu pet", href: "/miniatura-pet" },
   { label: "Como funciona", href: "/#como-funciona" },
   { label: "Encomenda personalizada", href: "/encomenda" },

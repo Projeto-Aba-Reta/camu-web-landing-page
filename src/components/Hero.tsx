@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import TrackedLink from "@/components/TrackedLink";
 import { heroPet } from "@/lib/data";
+import { STORE_ENABLED } from "@/lib/features";
 
 export default function Hero() {
   return (
@@ -45,7 +46,9 @@ export default function Hero() {
           </TrackedLink>
         </div>
         <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 font-heading text-sm font-bold text-charcoal">
-          {heroPet.secondaryCtas.map((cta) => (
+          {heroPet.secondaryCtas
+            .filter((cta) => STORE_ENABLED || cta.href !== "/loja")
+            .map((cta) => (
             <Link
               key={cta.href}
               href={cta.href}

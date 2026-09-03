@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { getProducts } from "@/lib/store";
+import { STORE_ENABLED } from "@/lib/features";
 import CatalogClient from "@/components/store/CatalogClient";
 
 export const metadata: Metadata = {
@@ -11,6 +13,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function LojaPage() {
+  if (!STORE_ENABLED) notFound();
+
   const products = await getProducts();
 
   return (

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getOrderByCode, reconcileOrderPayment } from "@/lib/store";
 import { getPetMiniatureRequestByOrderId } from "@/lib/pet-miniature";
 import { formatBRL } from "@/lib/money";
+import { STORE_ENABLED } from "@/lib/features";
 
 export const dynamic = "force-dynamic";
 
@@ -120,10 +121,10 @@ export default async function ConfirmadoPage({ params }: { params: Promise<Param
           Acompanhar pedido →
         </Link>
         <Link
-          href="/loja"
+          href={STORE_ENABLED ? "/loja" : "/"}
           className="rounded-full border-[3px] border-charcoal bg-transparent px-7 py-4 font-heading font-bold text-charcoal transition-colors hover:bg-charcoal/5"
         >
-          Voltar à loja
+          {STORE_ENABLED ? "Voltar à loja" : "Voltar ao início"}
         </Link>
       </div>
     </section>

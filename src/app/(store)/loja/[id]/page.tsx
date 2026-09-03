@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { getProductById } from "@/lib/store";
+import { STORE_ENABLED } from "@/lib/features";
 import { formatBRL } from "@/lib/money";
 import ProductPurchase from "@/components/store/ProductPurchase";
 
@@ -27,6 +28,8 @@ export async function generateMetadata({
 }
 
 export default async function ProdutoPage({ params }: { params: Promise<Params> }) {
+  if (!STORE_ENABLED) notFound();
+
   const { id } = await params;
   const product = await getProductById(id);
   if (!product) notFound();

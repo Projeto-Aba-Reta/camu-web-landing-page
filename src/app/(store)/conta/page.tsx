@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getCurrentCustomerEmail } from "@/lib/auth/session";
 import { getCustomerDashboard } from "@/lib/account";
 import { logoutCustomer } from "@/app/actions/auth";
+import { STORE_ENABLED } from "@/lib/features";
 import ContaOrders from "@/components/store/ContaOrders";
 
 export const dynamic = "force-dynamic";
@@ -42,12 +43,14 @@ export default async function ContaPage() {
         <div className="rounded-2xl border-[3px] border-charcoal bg-offwhite-2 p-6 text-center font-sans text-sm text-charcoal/70">
           <p className="mb-4">Nenhum pedido por aqui ainda.</p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Link
-              href="/loja"
-              className="rounded-full border-[3px] border-charcoal bg-teal px-5 py-2.5 font-heading text-[13px] font-bold text-charcoal"
-            >
-              Ver catálogo
-            </Link>
+            {STORE_ENABLED && (
+              <Link
+                href="/loja"
+                className="rounded-full border-[3px] border-charcoal bg-teal px-5 py-2.5 font-heading text-[13px] font-bold text-charcoal"
+              >
+                Ver catálogo
+              </Link>
+            )}
             <Link
               href="/miniatura-pet"
               className="rounded-full border-[3px] border-charcoal bg-coral px-5 py-2.5 font-heading text-[13px] font-bold text-charcoal"

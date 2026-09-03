@@ -1,12 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { navLinks } from "@/lib/data";
+import { STORE_ENABLED } from "@/lib/features";
 import MobileMenu from "@/components/MobileMenu";
 import TrackedLink from "@/components/TrackedLink";
 
 const mobileLinks = [
   { label: "Miniatura do pet", href: "/miniatura-pet" },
-  { label: "Loja", href: "/loja" },
+  ...(STORE_ENABLED ? [{ label: "Loja", href: "/loja" }] : []),
   ...navLinks,
 ];
 
@@ -40,14 +41,16 @@ export default function Navbar() {
               Miniatura do pet
             </Link>
           </li>
-          <li>
-            <Link
-              href="/loja"
-              className="text-sm font-medium text-charcoal transition-colors hover:text-teal-dark"
-            >
-              Loja
-            </Link>
-          </li>
+          {STORE_ENABLED && (
+            <li>
+              <Link
+                href="/loja"
+                className="text-sm font-medium text-charcoal transition-colors hover:text-teal-dark"
+              >
+                Loja
+              </Link>
+            </li>
+          )}
           {navLinks.map((link) => (
             <li key={link.href}>
               <a
