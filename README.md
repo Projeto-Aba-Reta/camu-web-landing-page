@@ -84,9 +84,12 @@ public/images/           assets do Leon (mascote)
 
 Estes pontos usam dados de exemplo e precisam ser substituídos com conteúdo real antes de publicar:
 
-- Fotos de produto e foto da equipe/oficina (hoje: blocos com textura diagonal). Na loja, cada produto tem `image_url` no Supabase — enquanto for `null`, aparece o tile placeholder `[foto produto]`.
+- Fotos de produto e foto da equipe/oficina (hoje: blocos com textura diagonal / ilustrações do Leon). Na loja, produto sem `image_url` mostra a ilustração `leon-questioning.png` como fallback.
+- **Hero e bloco do produto principal da home** (`src/components/Hero.tsx`, `ProdutoPrincipal.tsx`): imagens são ilustrações do Leon — substituir por **foto real do pet + miniatura impressa lado a lado**.
+- **Preço e prazo da miniatura de pet** em `src/lib/data.ts` (`heroPet.priceFrom`, `heroPet.leadTime`, `trustItems`, `faqItems`, `catalogInfo.leadTime`) — hoje "a partir de R$ 149" / "~7 dias úteis" são chutes marcados com `// TODO`.
+- **Galeria de peças entregues e nº de pedidos** em `src/lib/data.ts` (`deliveredGallery`, `ordersDelivered`): vazios — `<ProvaSocial/>` só aparece quando houver fotos reais.
 - Catálogo da loja: os produtos e preços vêm do ERP (`camu-web-admin`); publique via canal `loja_propria` (ver "Configuração" acima).
-- Depoimentos em `src/lib/data.ts` (`testimonials`)
+- Depoimentos em `src/lib/data.ts` (`testimonials`): vazio — `<Testimonials/>` não renderiza até haver depoimentos reais autorizados.
 - Links de redes sociais e marketplaces em `src/lib/data.ts` (`socialLinks`, `marketplaces`, `products`)
 - CNPJ no footer (`src/components/Footer.tsx`)
 - Domínio em `src/app/layout.tsx` (`siteUrl`) e `src/app/sitemap.ts` / `robots.ts` — hoje apontam para `https://camu.com.br`, ajustar para o domínio final

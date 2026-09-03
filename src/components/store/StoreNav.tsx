@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
+import MobileMenu from "@/components/MobileMenu";
 
 const links = [
   { label: "Catálogo", href: "/loja" },
@@ -11,6 +12,8 @@ const links = [
   { label: "Encomenda personalizada", href: "/encomenda" },
   { label: "Contato", href: "/#contato" },
 ];
+
+const mobileLinks = [...links, { label: "Minha conta", href: "/conta" }];
 
 export default function StoreNav({ showCart = true }: { showCart?: boolean }) {
   const { count, ready } = useCart();
@@ -34,7 +37,7 @@ export default function StoreNav({ showCart = true }: { showCart?: boolean }) {
         </Link>
 
         <div className="flex items-center gap-5 md:gap-7">
-          <ul className="hidden items-center gap-6 lg:flex">
+          <ul className="hidden items-center gap-6 md:flex">
             {links.map((link) => (
               <li key={link.href}>
                 <Link
@@ -49,7 +52,7 @@ export default function StoreNav({ showCart = true }: { showCart?: boolean }) {
 
           <Link
             href="/conta"
-            className="rounded-full border-2 border-charcoal bg-transparent px-4 py-2 font-heading text-[13px] font-bold text-charcoal transition-colors hover:bg-charcoal/5"
+            className="hidden rounded-full border-2 border-charcoal bg-transparent px-4 py-2 font-heading text-[13px] font-bold text-charcoal transition-colors hover:bg-charcoal/5 md:block"
           >
             Conta
           </Link>
@@ -68,6 +71,8 @@ export default function StoreNav({ showCart = true }: { showCart?: boolean }) {
               )}
             </Link>
           )}
+
+          <MobileMenu links={mobileLinks} />
         </div>
       </nav>
     </header>

@@ -3,8 +3,10 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart-context";
 import { formatBRL } from "@/lib/money";
+import { catalogInfo } from "@/lib/data";
 import type { Product } from "@/lib/types";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -22,6 +24,7 @@ function categoryLabel(c: string): string {
 export default function CatalogClient({ products }: { products: Product[] }) {
   const [filter, setFilter] = useState("all");
   const { addItem } = useCart();
+  const router = useRouter();
   const [added, setAdded] = useState<string | null>(null);
 
   const categories = useMemo(() => {
@@ -41,6 +44,17 @@ export default function CatalogClient({ products }: { products: Product[] }) {
     });
     setAdded(p.id);
     setTimeout(() => setAdded((s) => (s === p.id ? null : s)), 1400);
+  }
+
+  function buyNow(p: Product) {
+    addItem({
+      productId: p.id,
+      name: p.name,
+      variant: "Padrão",
+      qty: 1,
+      price_cents: p.price_cents,
+    });
+    router.push("/checkout");
   }
 
   if (products.length === 0) {
@@ -85,26 +99,42 @@ export default function CatalogClient({ products }: { products: Product[] }) {
                     className="object-cover"
                   />
                 ) : (
-                  <span className="font-mono text-[11px] font-semibold text-charcoal/55">
-                    [foto produto]
-                  </span>
+                  <Image
+                    src="/images/leon-questioning.png"
+                    alt={p.name}
+                    width={160}
+                    height={160}
+                    className="w-[55%] object-contain opacity-90"
+                  />
                 )}
               </div>
             </Link>
-            <div className="flex flex-1 flex-col gap-2.5 p-4">
+            <div className="flex flex-1 flex-col gap-2 p-4">
               <Link href={`/loja/${p.id}`} className="font-heading text-[15px] font-bold text-charcoal">
                 {p.name}
               </Link>
               <div className="font-heading text-base font-bold text-teal-dark">
                 {formatBRL(p.price_cents)}
               </div>
-              <button
-                type="button"
-                onClick={() => quickAdd(p)}
-                className="mt-auto rounded-full border-2 border-charcoal bg-teal py-2.5 text-center font-heading text-[12.5px] font-bold text-charcoal transition-colors hover:bg-teal-dark hover:text-offwhite"
-              >
-                {added === p.id ? "Adicionado ✓" : "+ Carrinho"}
-              </button>
+              <p className="text-[11.5px] leading-snug text-charcoal/55">
+                {catalogInfo.leadTime} · {catalogInfo.shipping}
+              </p>
+              <div className="mt-auto flex flex-col gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => buyNow(p)}
+                  className="sticker-shadow-sm rounded-full border-[3px] border-charcoal bg-coral py-2.5 text-center font-heading text-[12.5px] font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none"
+                >
+                  Comprar agora
+                </button>
+                <button
+                  type="button"
+                  onClick={() => quickAdd(p)}
+                  className="rounded-full border-2 border-charcoal bg-teal py-2.5 text-center font-heading text-[12.5px] font-bold text-charcoal transition-colors hover:bg-teal-dark hover:text-offwhite"
+                >
+                  {added === p.id ? "Adicionado ✓" : "+ Carrinho"}
+                </button>
+              </div>
             </div>
           </div>
         ))}

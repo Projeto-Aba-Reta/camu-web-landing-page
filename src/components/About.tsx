@@ -1,4 +1,7 @@
 import Image from "next/image";
+import { socialLinks } from "@/lib/data";
+
+const whatsapp = socialLinks.find((s) => s.label === "WhatsApp");
 
 export default function About() {
   return (
@@ -37,20 +40,25 @@ export default function About() {
           Sobre a Camu
         </span>
         <h2 className="mt-2.5 font-heading text-3xl font-bold leading-tight text-charcoal sm:text-4xl">
-          Um camaleão que virou empresa.
+          Leon vira o que você precisar.
         </h2>
         <p className="mt-4 max-w-xl text-base leading-relaxed text-charcoal/75 sm:text-lg">
           A Camu nasceu da vontade de dar forma física a personagens, cenas e
-          ideias que só existiam na tela. Leon é o símbolo disso: um bicho que
-          se adapta e se transforma no que for preciso — igual a impressão
-          3D.
+          ideias que só existiam na tela. Miniaturas, action figures, decor
+          geek — se você imaginou, a gente imprime, camada por camada. Leon é o
+          símbolo disso: um bicho que se adapta e se transforma no que for
+          preciso, igual a impressão 3D.
         </p>
-        <a
-          href="#contato"
-          className="mt-5 inline-block font-heading text-[15px] font-bold text-charcoal underline decoration-coral decoration-[3px] underline-offset-4"
-        >
-          Ler a história completa →
-        </a>
+        {whatsapp && (
+          <a
+            href={whatsapp.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-5 inline-block font-heading text-[15px] font-bold text-charcoal underline decoration-coral decoration-[3px] underline-offset-4"
+          >
+            Falar com a Camu no WhatsApp →
+          </a>
+        )}
       </div>
     </section>
   );

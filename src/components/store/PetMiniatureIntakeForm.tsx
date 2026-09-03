@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { submitPetMiniatureIntake } from "@/app/actions/pet-miniature";
+import { trackFunnel } from "@/lib/analytics";
 
 const MIN_PHOTOS = 3;
 const MAX_PHOTOS = 4;
@@ -17,6 +18,13 @@ export default function PetMiniatureIntakeForm() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const startedRef = useRef(false);
+
+  function markStarted() {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    trackFunnel("intake_iniciado");
+  }
 
   function addFiles(fileList: FileList | null) {
     if (!fileList) return;
@@ -57,6 +65,7 @@ export default function PetMiniatureIntakeForm() {
     setSubmitting(false);
 
     if (res.ok) {
+      trackFunnel("intake_enviado");
       router.push(`/miniatura-pet/${res.requestId}`);
     } else {
       setError(res.error);
@@ -64,7 +73,7 @@ export default function PetMiniatureIntakeForm() {
   }
 
   return (
-    <form action={onSubmit} className="flex flex-col gap-4">
+    <form action={onSubmit} onFocusCapture={markStarted} className="flex flex-col gap-4">
       <input name="name" required placeholder="Nome" className={inputClass} />
       <input name="phone" required placeholder="WhatsApp" className={inputClass} />
       <div>

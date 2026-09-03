@@ -1,4 +1,5 @@
 import "server-only";
+import { track } from "@vercel/analytics/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getServiceClient } from "./supabase/server";
 import { findPaymentByOrderCode } from "./mercadopago";
@@ -398,6 +399,15 @@ export async function applyPaymentStatus(
   // Pedido acabou de ser pago pela primeira vez: avisa o time da Camu.
   if (orderStatus === "paid" && current.status === "pending") {
     await notifySaleOfPaidOrder({ ...current, ...update } as Order);
+    // Evento de funil — best-effort, sem PII.
+    try {
+      await track("pedido_pago", {
+        pedido: current.order_code,
+        total_cents: current.total_cents,
+      });
+    } catch {
+      // analytics é best-effort
+    }
   }
 }
 

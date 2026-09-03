@@ -8,6 +8,7 @@ import {
   requestPetMiniatureRetry,
 } from "@/app/actions/pet-miniature";
 import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS } from "@/lib/money";
+import { trackFunnel } from "@/lib/analytics";
 import { isCepComplete, lookupCep } from "@/lib/cep";
 import type { PetMiniatureStatus, PetMiniatureVariant } from "@/lib/types";
 
@@ -87,6 +88,7 @@ export default function PetMiniaturePreview({
   async function onRetry() {
     setBusy(true);
     setPayError(null);
+    trackFunnel("previa_retentativa");
     const res = await requestPetMiniatureRetry(requestId);
     setBusy(false);
     if (res.ok) {
@@ -143,6 +145,7 @@ export default function PetMiniaturePreview({
   function onChooseVariant(variant: PetMiniatureVariant) {
     setChosenVariant(variant);
     setPayError(null);
+    trackFunnel("previa_aprovada", { variante: variant });
   }
 
   /** 2º passo: com a variante já escolhida, valida o endereço e cria o
@@ -188,6 +191,7 @@ export default function PetMiniaturePreview({
       uf: fields.uf,
     });
     if (res.ok) {
+      trackFunnel("checkout_iniciado", { fluxo: "miniatura_pet" });
       window.location.href = res.initPoint;
       return;
     }

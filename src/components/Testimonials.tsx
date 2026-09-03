@@ -1,9 +1,12 @@
 import { testimonials } from "@/lib/data";
 
 export default function Testimonials() {
+  // Sem depoimentos reais cadastrados: não renderiza nada (nada de "Cliente exemplo").
+  if (testimonials.length === 0) return null;
+
   return (
     <section className="bg-offwhite-2 px-6 py-16 sm:px-10 md:py-20">
-      <h2 className="mb-2 font-heading text-3xl font-bold text-charcoal sm:text-4xl">
+      <h2 className="mb-6 font-heading text-3xl font-bold text-charcoal sm:text-4xl">
         O que a galera fala
       </h2>
       <div className="grid gap-5 md:grid-cols-3">

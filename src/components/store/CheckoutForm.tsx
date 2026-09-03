@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS } from "@/lib/money";
+import { trackFunnel } from "@/lib/analytics";
 import { createCheckout } from "@/app/actions/orders";
 
 const STEPS = ["Carrinho", "Endereço", "Pagamento", "Confirmação"];
@@ -50,6 +51,7 @@ export default function CheckoutForm({ initialError }: { initialError?: string }
     });
 
     if (res.ok) {
+      trackFunnel("checkout_iniciado", { fluxo: "catalogo" });
       clear();
       window.location.href = res.initPoint; // redirect pro Checkout Pro do Mercado Pago
     } else {

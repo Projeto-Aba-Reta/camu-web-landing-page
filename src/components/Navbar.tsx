@@ -1,6 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { navLinks } from "@/lib/data";
+import MobileMenu from "@/components/MobileMenu";
+import TrackedLink from "@/components/TrackedLink";
+
+const mobileLinks = [
+  { label: "Miniatura do pet", href: "/miniatura-pet" },
+  { label: "Loja", href: "/loja" },
+  ...navLinks,
+];
 
 export default function Navbar() {
   return (
@@ -26,6 +34,14 @@ export default function Navbar() {
         <ul className="hidden items-center gap-7 md:flex">
           <li>
             <Link
+              href="/miniatura-pet"
+              className="text-sm font-medium text-charcoal transition-colors hover:text-teal-dark"
+            >
+              Miniatura do pet
+            </Link>
+          </li>
+          <li>
+            <Link
               href="/loja"
               className="text-sm font-medium text-charcoal transition-colors hover:text-teal-dark"
             >
@@ -44,12 +60,17 @@ export default function Navbar() {
           ))}
         </ul>
 
-        <Link
-          href="/loja"
-          className="sticker-shadow-sm rounded-full border-[3px] border-charcoal bg-coral px-5 py-2.5 font-heading text-sm font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none"
-        >
-          Ir pra loja
-        </Link>
+        <div className="flex items-center gap-3">
+          <TrackedLink
+            href="/miniatura-pet"
+            event="home_cta_miniatura"
+            eventProps={{ origem: "navbar" }}
+            className="sticker-shadow-sm rounded-full border-[3px] border-charcoal bg-coral px-4 py-2.5 font-heading text-[13px] font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none sm:px-5 sm:text-sm"
+          >
+            Fazer minha miniatura
+          </TrackedLink>
+          <MobileMenu links={mobileLinks} />
+        </div>
       </nav>
     </header>
   );
