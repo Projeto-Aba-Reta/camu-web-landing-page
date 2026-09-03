@@ -19,7 +19,7 @@ export default function Navbar() {
       >
         <Link href="#top" className="flex items-center gap-2.5">
           <Image
-            src="/images/leon-logo.png"
+            src="/images/circleLogo.svg"
             alt="Camu logo"
             width={44}
             height={44}

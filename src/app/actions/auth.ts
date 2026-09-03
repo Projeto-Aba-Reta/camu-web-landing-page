@@ -5,6 +5,7 @@ import { siteUrl } from "@/lib/payments";
 import { createMagicToken } from "@/lib/auth/magic-token";
 import { sendMagicLinkEmail } from "@/lib/auth/send-magic-link";
 import { clearSessionCookie, isValidEmail, normalizeEmail } from "@/lib/auth/session";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export type MagicLinkResult = { ok: true } | { ok: false; error: string };
 
@@ -20,6 +21,17 @@ export async function requestMagicLink(formData: FormData): Promise<MagicLinkRes
     const token = await createMagicToken(email);
     const url = `${siteUrl()}/login/verificar?token=${encodeURIComponent(token)}`;
     await sendMagicLinkEmail(email, url);
+
+    // Capture login request — distinctId is the normalized email (treated as
+    // the stable customer identifier on the server side; email is PII so we
+    // also call identify() to attach it to the person profile).
+    const posthog = getPostHogClient();
+    if (posthog) {
+      posthog.identify({ distinctId: email, properties: { email } });
+      posthog.capture({ distinctId: email, event: "magic_link_requested" });
+      await posthog.flush();
+    }
+
     return { ok: true };
   } catch (err) {
     const message =

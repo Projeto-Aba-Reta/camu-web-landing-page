@@ -26,7 +26,7 @@ export default function StoreNav({ showCart = true }: { showCart?: boolean }) {
       >
         <Link href="/" className="flex items-center gap-2.5">
           <Image
-            src="/images/leon-logo.png"
+            src="/images/circleLogo.svg"
             alt="Camu logo"
             width={40}
             height={40}

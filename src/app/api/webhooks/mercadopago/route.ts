@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { mercadoPagoGateway } from "@/lib/payments";
 import { applyPaymentStatus } from "@/lib/store";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 /**
  * Webhook do Mercado Pago. Recebe notificações de pagamento, busca o pagamento
@@ -17,6 +18,21 @@ export async function POST(request: NextRequest) {
     const result = await mercadoPagoGateway.parseWebhook(request);
     if (result) {
       await applyPaymentStatus(result.orderCode, result.status, result.paymentId);
+      if (result.status === "approved") {
+        const posthog = getPostHogClient();
+        if (posthog) {
+          posthog.capture({
+            distinctId: result.orderCode,
+            event: "payment_completed",
+            properties: {
+              order_code: result.orderCode,
+              payment_id: result.paymentId,
+              gateway: "mercadopago",
+            },
+          });
+          await posthog.flush();
+        }
+      }
     }
     return Response.json({ ok: true });
   } catch (err) {

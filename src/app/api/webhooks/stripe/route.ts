@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { stripeGateway } from "@/lib/payments";
 import { applyPaymentStatus } from "@/lib/store";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 /**
  * Webhook do Stripe. Ativo quando `PAYMENT_GATEWAY=stripe`. Configure o endpoint
@@ -19,6 +20,21 @@ export async function POST(request: NextRequest) {
     const result = await stripeGateway.parseWebhook(request);
     if (result) {
       await applyPaymentStatus(result.orderCode, result.status, result.paymentId);
+      if (result.status === "approved") {
+        const posthog = getPostHogClient();
+        if (posthog) {
+          posthog.capture({
+            distinctId: result.orderCode,
+            event: "payment_completed",
+            properties: {
+              order_code: result.orderCode,
+              payment_id: result.paymentId,
+              gateway: "stripe",
+            },
+          });
+          await posthog.flush();
+        }
+      }
     }
     return Response.json({ ok: true });
   } catch (err) {

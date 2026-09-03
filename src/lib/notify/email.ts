@@ -29,9 +29,13 @@ export const emailChannel: SaleNotificationChannel = {
   name: "email",
   async send(event) {
     const apiKey = process.env.RESEND_API_KEY;
-    const to = process.env.SALE_NOTIFICATION_EMAIL_TO;
+    // Aceita uma lista separada por vírgula (ex.: caixa da loja + Gmail da Camu).
+    const to = (process.env.SALE_NOTIFICATION_EMAIL_TO ?? "")
+      .split(",")
+      .map((addr) => addr.trim())
+      .filter(Boolean);
     const from = process.env.SALE_NOTIFICATION_EMAIL_FROM || "Camu <vendas@camu.com.br>";
-    if (!apiKey || !to) {
+    if (!apiKey || to.length === 0) {
       throw new Error(
         "Canal de e-mail não configurado: defina RESEND_API_KEY e SALE_NOTIFICATION_EMAIL_TO em .env.local",
       );

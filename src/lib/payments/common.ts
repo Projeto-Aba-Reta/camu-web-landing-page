@@ -1,16 +1,17 @@
 import "server-only";
 
 /** Gateway de pagamento ativo, escolhido por `PAYMENT_GATEWAY` no .env.
- *  `mercadopago` (padrão) ou `stripe`. Os dois ficam no código; só um
- *  processa os checkouts por vez. */
-export type GatewayId = "mercadopago" | "stripe";
+ *  `mercadopago` (padrão), `stripe` ou `abacatepay`. Todos ficam no código; só
+ *  um processa os checkouts por vez. */
+export type GatewayId = "mercadopago" | "stripe" | "abacatepay";
 
 export function activeGatewayId(): GatewayId {
   const raw = (process.env.PAYMENT_GATEWAY ?? "mercadopago").trim().toLowerCase();
   if (raw === "stripe") return "stripe";
+  if (raw === "abacatepay") return "abacatepay";
   if (raw === "mercadopago" || raw === "") return "mercadopago";
   throw new Error(
-    `PAYMENT_GATEWAY inválido: "${raw}". Use "mercadopago" ou "stripe".`,
+    `PAYMENT_GATEWAY inválido: "${raw}". Use "mercadopago", "stripe" ou "abacatepay".`,
   );
 }
 

@@ -21,6 +21,7 @@ import {
 import { isValidEmail } from "@/lib/auth/session";
 import { isValidPhone } from "@/lib/contact";
 import type { PetMiniatureVariant } from "@/lib/types";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export type PetMiniatureIntakeResult =
   | { ok: true; requestId: string }
@@ -58,6 +59,23 @@ export async function submitPetMiniatureIntake(formData: FormData): Promise<PetM
     const request = await createPetMiniatureRequest({ name, phone, email, photos });
 
     after(() => runPetMiniatureGeneration(request.id));
+
+    // Server-side: identify the user and capture the intake creation event.
+    // distinctId is the request id (a stable, non-PII uuid); PII goes only to
+    // identify() so it lands on the person profile, never on the event itself.
+    const posthog = getPostHogClient();
+    if (posthog) {
+      posthog.identify({
+        distinctId: request.id,
+        properties: { email, phone_country: phone.startsWith("+55") ? "BR" : "other" },
+      });
+      posthog.capture({
+        distinctId: request.id,
+        event: "pet_miniature_order_created",
+        properties: { photo_count: photos.length, request_id: request.id },
+      });
+      await posthog.flush();
+    }
 
     return { ok: true, requestId: request.id };
   } catch (err) {
