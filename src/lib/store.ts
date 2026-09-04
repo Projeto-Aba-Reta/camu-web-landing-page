@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getServiceClient } from "./supabase/server";
 import { activeGatewayId, getPaymentGateway } from "./payments";
 import { SHIPPING_CENTS, FRETE_ENABLED, isFreteInclusoUF } from "./money";
-import { quoteFrete } from "./shipping/melhor-envio";
+import { quoteFrete } from "./shipping";
 import { notifySaleChannels } from "./notify";
 import { getPetMiniatureRequestsByOrderId, publicMediaUrl } from "./pet-miniature";
 import type { Order, OrderItem, OrderStatus, Product } from "./types";
@@ -173,8 +173,9 @@ export type OrderWithItems = {
  * Frete somado ao pedido, calculado no servidor:
  *  - `NEXT_PUBLIC_FRETE_ENABLED=true` → frete fixo (`SHIPPING_CENTS`);
  *  - entrega no Sul/Sudeste → frete incluso (0);
- *  - entrega fora do Sul/Sudeste → cotação em tempo real via Melhor Envio
- *    (opção mais barata), que entra no total cobrado pelo gateway.
+ *  - entrega fora do Sul/Sudeste → cotação em tempo real pelo gateway de frete
+ *    ativo (`SHIPPING_GATEWAY`: SuperFrete ou Melhor Envio), 1ª opção da lista,
+ *    que entra no total cobrado pelo gateway de pagamento.
  */
 async function resolveShippingCents(input: {
   uf: string;

@@ -6,7 +6,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { approvePetMiniatureCartAndPay } from "@/app/actions/pet-miniature";
 import { usePetCart } from "@/lib/pet-miniature-cart";
-import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS, isFreteInclusoUF } from "@/lib/money";
+import {
+  formatBRL,
+  FRETE_ENABLED,
+  SHIPPING_CENTS,
+  isFreteInclusoUF,
+  isFreteInclusoCep,
+} from "@/lib/money";
+import { cepDigits } from "@/lib/cep";
 import { useFreteQuote } from "@/lib/use-frete-quote";
 import { trackFunnel } from "@/lib/analytics";
 import AddressFields, {
@@ -62,10 +69,14 @@ export default function PetMiniatureCart() {
     );
   }
 
-  const ufFilled = address.uf.trim().length > 0;
-  const freteIncluso = isFreteInclusoUF(address.uf);
-  const freteRequired = !FRETE_ENABLED && ufFilled && !freteIncluso;
-  const shippingFree = !FRETE_ENABLED && (freteIncluso || !ufFilled);
+  // Região Sul/Sudeste = frete grátis. Detectamos já pela faixa do CEP (1º
+  // dígito), antes de os Correios devolverem a UF, pra não exibir um valor de
+  // frete que logo em seguida vira "grátis".
+  const cepComplete = cepDigits(address.cep).length === 8;
+  const freteIncluso = isFreteInclusoCep(address.cep) || isFreteInclusoUF(address.uf);
+  const regionKnown = cepComplete || address.uf.trim().length > 0;
+  const freteRequired = !FRETE_ENABLED && regionKnown && !freteIncluso;
+  const shippingFree = !FRETE_ENABLED && (freteIncluso || !regionKnown);
   const shippingCents = FRETE_ENABLED
     ? SHIPPING_CENTS
     : frete.status === "done"
@@ -224,7 +235,7 @@ export default function PetMiniatureCart() {
             <span>−{formatBRL(pricing.discountCents)}</span>
           </div>
         )}
-        {ufFilled && (
+        {regionKnown && (
           <div className="mb-3.5 flex justify-between font-sans text-sm font-medium text-charcoal">
             <span>Frete</span>
             <span className={shippingFree ? "font-bold text-teal" : undefined}>

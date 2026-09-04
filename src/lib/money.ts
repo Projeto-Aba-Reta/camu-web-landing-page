@@ -30,3 +30,17 @@ const FRETE_INCLUSO_UFS = new Set([
 export function isFreteInclusoUF(uf: string): boolean {
   return FRETE_INCLUSO_UFS.has(uf.trim().toUpperCase());
 }
+
+/**
+ * Primeiros dígitos de CEP do Sul e Sudeste (macrorregião definida pelo 1º
+ * dígito): 0/1 = SP · 2 = RJ/ES · 3 = MG · 8 = PR/SC · 9 = RS.
+ * Serve pra decidir "frete grátis" já na digitação do CEP, antes de resolver a
+ * UF nos Correios — evita mostrar um valor de frete que depois vira grátis.
+ */
+const FRETE_INCLUSO_CEP_PREFIXES = new Set(["0", "1", "2", "3", "8", "9"]);
+
+/** true quando o CEP (mesmo parcial) é de uma faixa do Sul ou Sudeste. */
+export function isFreteInclusoCep(cep: string): boolean {
+  const digits = cep.replace(/\D/g, "");
+  return digits.length >= 1 && FRETE_INCLUSO_CEP_PREFIXES.has(digits[0]!);
+}

@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { FreteQuote, QuoteFreteParams, ShippingGateway } from "./types";
+
 /**
  * Cotação de frete via API do Melhor Envio (`POST /me/shipment/calculate`).
  *
@@ -167,18 +169,14 @@ export function validFreteOptions(options: FreteOption[]): FreteOption[] {
   return filterByAllowedIds(options.filter((o) => !o.error && o.price > 0));
 }
 
-export type FreteQuote = { cents: number; service: string; carrier: string; prazoDias: number };
+export type { FreteQuote };
 
 /**
  * Cota o frete para um CEP e devolve a opção selecionada (a **primeira** da
  * lista válida — mesma regra da referência, que não é a mais barata e sim a
  * ordem que a API retorna). Lança `Error` amigável se nada atende o trecho.
  */
-export async function quoteFrete(params: {
-  toCep: string;
-  itemCount: number;
-  insuranceValueReais: number;
-}): Promise<FreteQuote> {
+export async function quoteFrete(params: QuoteFreteParams): Promise<FreteQuote> {
   const count = Number.isFinite(params.itemCount) ? Math.max(1, Math.floor(params.itemCount)) : 1;
   const weight = Number((DEFAULT_ITEM_WEIGHT_KG * count).toFixed(3));
 
@@ -203,3 +201,9 @@ export async function quoteFrete(params: {
     prazoDias: chosen.delivery_time,
   };
 }
+
+/** Gateway de frete "melhor_envio" (padrão). */
+export const melhorEnvioGateway: ShippingGateway = {
+  name: "melhor_envio",
+  quoteFrete,
+};

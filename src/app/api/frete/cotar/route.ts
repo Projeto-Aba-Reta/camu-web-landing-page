@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { quoteFrete } from "@/lib/shipping/melhor-envio";
+import { quoteFrete } from "@/lib/shipping";
 
 /**
  * Cotação de frete para exibir no carrinho/checkout (entregas fora do Sul e

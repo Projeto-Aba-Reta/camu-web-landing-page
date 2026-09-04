@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
-import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS, isFreteInclusoUF } from "@/lib/money";
+import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS, isFreteInclusoUF, isFreteInclusoCep } from "@/lib/money";
+import { cepDigits } from "@/lib/cep";
 import { useFreteQuote } from "@/lib/use-frete-quote";
 import { STORE_ENABLED } from "@/lib/features";
 import { trackFunnel } from "@/lib/analytics";
@@ -21,15 +22,19 @@ export default function CheckoutForm({ initialError }: { initialError?: string }
   const [uf, setUf] = useState("");
   const [cep, setCep] = useState("");
 
-  const freteIncluso = isFreteInclusoUF(uf);
+  // Região Sul/Sudeste = frete grátis. Detectamos já pela faixa do CEP (1º
+  // dígito), antes de a UF ser digitada, pra não mostrar um valor que some.
+  const cepComplete = cepDigits(cep).length === 8;
+  const freteIncluso = isFreteInclusoCep(cep) || isFreteInclusoUF(uf);
+  const regionKnown = cepComplete || uf.trim().length > 0;
   const frete = useFreteQuote({
     cep,
     uf,
     itemCount: count,
     insuranceValueReais: subtotalCents / 100,
   });
-  const freteRequired = !FRETE_ENABLED && uf.trim().length === 2 && !freteIncluso;
-  const shippingFree = !FRETE_ENABLED && (freteIncluso || !uf.trim());
+  const freteRequired = !FRETE_ENABLED && regionKnown && !freteIncluso;
+  const shippingFree = !FRETE_ENABLED && (freteIncluso || !regionKnown);
   const shippingCents = FRETE_ENABLED
     ? SHIPPING_CENTS
     : frete.status === "done"

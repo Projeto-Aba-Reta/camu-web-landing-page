@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FRETE_ENABLED, isFreteInclusoUF } from "@/lib/money";
+import { FRETE_ENABLED, isFreteInclusoUF, isFreteInclusoCep } from "@/lib/money";
 import { cepDigits } from "@/lib/cep";
 
 export type FreteQuoteState =
@@ -33,13 +33,16 @@ type Resolved =
  * sempre recalculado no servidor em `createOrder`.
  *
  * Fica `idle` quando o frete fixo está ligado (`NEXT_PUBLIC_FRETE_ENABLED`),
- * quando a UF é do Sul/Sudeste (frete incluso) ou quando o CEP ainda não tem
- * 8 dígitos.
+ * quando a região é do Sul/Sudeste (frete incluso — detectada já pela faixa do
+ * CEP, antes mesmo da UF) ou quando o CEP ainda não tem 8 dígitos.
  */
 export function useFreteQuote({ cep, uf, itemCount, insuranceValueReais }: Params): FreteQuoteState {
   const digits = cepDigits(cep);
   const needsQuote =
-    !FRETE_ENABLED && uf.trim().length === 2 && !isFreteInclusoUF(uf) && digits.length === 8;
+    !FRETE_ENABLED &&
+    digits.length === 8 &&
+    !isFreteInclusoCep(digits) &&
+    !isFreteInclusoUF(uf);
   const key = needsQuote ? `${digits}|${itemCount}|${insuranceValueReais}` : null;
 
   const [resolved, setResolved] = useState<{ key: string; value: Resolved } | null>(null);
