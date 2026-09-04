@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { approvePetMiniatureCartAndPay } from "@/app/actions/pet-miniature";
 import { usePetCart } from "@/lib/pet-miniature-cart";
-import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS } from "@/lib/money";
+import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS, isFreteInclusoUF } from "@/lib/money";
 import { trackFunnel } from "@/lib/analytics";
 import AddressFields, {
   addressLine,
@@ -52,7 +52,14 @@ export default function PetMiniatureCart() {
     );
   }
 
-  const shippingLabel = FRETE_ENABLED ? formatBRL(SHIPPING_CENTS) : "combinado à parte";
+  const freteIncluso = isFreteInclusoUF(address.uf);
+  const shippingLabel = FRETE_ENABLED
+    ? formatBRL(SHIPPING_CENTS)
+    : freteIncluso
+      ? "Grátis"
+      : address.uf.trim()
+        ? "combinado à parte pelo WhatsApp"
+        : "grátis p/ Sul e Sudeste";
   const totalCents = pricing.itemsTotalCents + (FRETE_ENABLED ? SHIPPING_CENTS : 0);
   const orderEmail = items.find((i) => i.customerEmail)?.customerEmail ?? null;
 

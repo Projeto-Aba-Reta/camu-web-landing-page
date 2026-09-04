@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
-import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS } from "@/lib/money";
+import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS, isFreteInclusoUF } from "@/lib/money";
 import { STORE_ENABLED } from "@/lib/features";
 import { trackFunnel } from "@/lib/analytics";
 import { createCheckout } from "@/app/actions/orders";
@@ -17,6 +17,16 @@ export default function CheckoutForm({ initialError }: { initialError?: string }
   const { items, subtotalCents, count, ready, clear } = useCart();
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [submitting, setSubmitting] = useState(false);
+  const [uf, setUf] = useState("");
+
+  const freteIncluso = isFreteInclusoUF(uf);
+  const shippingLabel = FRETE_ENABLED
+    ? formatBRL(SHIPPING_CENTS)
+    : freteIncluso
+      ? "Grátis"
+      : uf.trim()
+        ? "combinado à parte pelo WhatsApp"
+        : "grátis p/ Sul e Sudeste";
 
   if (ready && items.length === 0 && !submitting) {
     return (
@@ -99,7 +109,14 @@ export default function CheckoutForm({ initialError }: { initialError?: string }
             <div className="grid gap-3.5 sm:grid-cols-2">
               <input name="cep" placeholder="CEP" className={inputClass} />
               <input name="city" placeholder="Cidade" className={inputClass} />
-              <input name="uf" placeholder="UF" maxLength={2} className={inputClass} />
+              <input
+                name="uf"
+                placeholder="UF"
+                maxLength={2}
+                value={uf}
+                onChange={(e) => setUf(e.target.value)}
+                className={inputClass}
+              />
               <input name="line" placeholder="Endereço, número, complemento" className={`${inputClass} sm:col-span-2`} />
             </div>
           </section>
@@ -130,7 +147,7 @@ export default function CheckoutForm({ initialError }: { initialError?: string }
           </div>
           <div className="mb-3.5 flex justify-between font-sans text-sm font-medium text-charcoal">
             <span>Frete</span>
-            <span>{FRETE_ENABLED ? formatBRL(SHIPPING_CENTS) : "combinado à parte"}</span>
+            <span>{shippingLabel}</span>
           </div>
           <div className="mb-3.5 h-0.5 bg-charcoal/15" />
           <div className="mb-6 flex justify-between font-heading text-lg font-extrabold text-charcoal">
