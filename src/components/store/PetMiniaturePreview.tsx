@@ -75,6 +75,13 @@ export default function PetMiniaturePreview({
 
   const inCart = petCart.items.find((i) => i.requestId === requestId) ?? null;
 
+  const previaTrackedRef = useRef(false);
+  useEffect(() => {
+    if (status !== "pronto" || previaTrackedRef.current) return;
+    previaTrackedRef.current = true;
+    trackFunnel("previa_pronta");
+  }, [status]);
+
   useEffect(() => {
     if (status !== "processando") return;
 

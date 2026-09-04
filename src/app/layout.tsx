@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import { Baloo_2, Space_Grotesk } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { CartProvider } from "@/lib/cart-context";
+import CrispChat from "@/components/CrispChat";
 import "./globals.css";
+
+const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+const crispWebsiteId = process.env.NEXT_PUBLIC_CRISP_WEBSITE_ID;
 
 const baloo = Baloo_2({
   variable: "--font-baloo",
@@ -92,7 +97,9 @@ export default function RootLayout({
         />
         <CartProvider>{children}</CartProvider>
         <Analytics />
+        {crispWebsiteId && <CrispChat websiteId={crispWebsiteId} />}
       </body>
+      {gaId && <GoogleAnalytics gaId={gaId} />}
     </html>
   );
 }

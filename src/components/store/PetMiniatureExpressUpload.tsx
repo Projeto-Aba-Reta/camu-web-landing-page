@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { uploadExpressPetPhotos, getExpressPetMiniatureStatus } from "@/app/actions/pet-miniature";
 import type { ExpressPetMiniatureStatusResult } from "@/app/actions/pet-miniature";
+import { trackFunnel } from "@/lib/analytics";
 
 const MIN_PHOTOS = 3;
 const MAX_PHOTOS = 4;
@@ -110,6 +111,7 @@ function PetUploader({
     const res = await uploadExpressPetPhotos(orderCode, pet.index, formData);
     setSubmitting(false);
     if (res.ok) {
+      trackFunnel("express_fotos_enviadas", { pet: pet.index });
       onDone();
     } else {
       setError(res.error);
@@ -209,6 +211,9 @@ function PetExpressPreview({ orderCode, pet }: { orderCode: string; pet: PetSlot
       setResult(res);
       if (!res.ok || res.status !== "processando") {
         if (timer) clearInterval(timer);
+      }
+      if (res.ok && res.status === "pronto") {
+        trackFunnel("express_previa_pronta", { pet: pet.index });
       }
     }
 

@@ -5,6 +5,7 @@ import { getOrderByCode, reconcileOrderPayment } from "@/lib/store";
 import { getPetMiniatureRequestsByOrderId } from "@/lib/pet-miniature";
 import { formatBRL } from "@/lib/money";
 import { STORE_ENABLED } from "@/lib/features";
+import PedidoPagoTracker from "@/components/store/PedidoPagoTracker";
 
 export const dynamic = "force-dynamic";
 
@@ -32,9 +33,18 @@ export default async function ConfirmadoPage({ params }: { params: Promise<Param
   const petRequests = await getPetMiniatureRequestsByOrderId(order.id);
   const petPhotosPending =
     petRequests.length > 0 && petRequests.some((r) => r.photo_paths.length === 0);
+  const fluxo =
+    petRequests.length === 0
+      ? "catalogo"
+      : petPhotosPending
+        ? "miniatura_pet_expressa"
+        : "miniatura_pet_normal";
 
   return (
     <section className="mx-auto flex max-w-3xl flex-col items-center px-6 py-16 text-center sm:px-10">
+      {approved && (
+        <PedidoPagoTracker orderCode={order.order_code} totalCents={order.total_cents} fluxo={fluxo} />
+      )}
       <div
         className="mb-6 flex items-center justify-center rounded-full border-4 border-charcoal"
         style={{
