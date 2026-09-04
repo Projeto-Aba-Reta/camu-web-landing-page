@@ -79,6 +79,81 @@ export async function createPetMiniatureRequest(input: {
   return data as PetMiniatureRequest;
 }
 
+/** Fluxo "expressa": o cliente paga primeiro e só depois manda as fotos. Cria
+ *  `count` encomendas já vinculadas ao pedido, sem fotos (`photo_paths: []`) e
+ *  com a variante escolhida. `customer_phone` fica vazio de propósito — esse
+ *  fluxo não pede telefone. As fotos entram depois via `attachPhotosToRequest`. */
+export async function createExpressPetMiniatureRequests(input: {
+  email: string;
+  variant: PetMiniatureVariant;
+  orderId: string;
+  count: number;
+}): Promise<PetMiniatureRequest[]> {
+  const db = getServiceClient();
+  const rows = Array.from({ length: Math.max(1, input.count) }, () => ({
+    customer_name: "",
+    customer_phone: "",
+    customer_email: input.email.trim().toLowerCase(),
+    photo_paths: [] as string[],
+    status: "processando" satisfies PetMiniatureStatus,
+    selected_variant: input.variant,
+    order_id: input.orderId,
+  }));
+
+  const { data, error } = await db
+    .from("pet_miniature_requests")
+    .insert(rows)
+    .select("*");
+  if (error || !data) throw new Error(`Falha ao criar encomendas: ${error?.message}`);
+  return data as PetMiniatureRequest[];
+}
+
+/** Anexa as fotos originais a uma encomenda que ainda não tem nenhuma (fluxo
+ *  expressa, pós-pagamento). Sobe pro bucket privado e grava `photo_paths`.
+ *  Registra um evento no pedido pra aparecer na timeline de acompanhamento. */
+export async function attachPhotosToRequest(
+  requestId: string,
+  photos: IncomingPhoto[],
+): Promise<void> {
+  const db = getServiceClient();
+  const request = await getPetMiniatureRequest(requestId);
+  if (!request) throw new Error("Encomenda não encontrada.");
+  if (request.photo_paths.length > 0) {
+    throw new Error("As fotos deste pet já foram enviadas.");
+  }
+
+  const paths: string[] = [];
+  for (const [i, photo] of photos.entries()) {
+    const path = `${requestId}/${i}.${extFor(photo.type)}`;
+    const { error } = await db.storage
+      .from(PHOTOS_BUCKET)
+      .upload(path, photo.buffer, { contentType: photo.type, upsert: true });
+    if (error) throw new Error(`Falha ao enviar foto: ${error.message}`);
+    paths.push(path);
+  }
+
+  const { error } = await db
+    .from("pet_miniature_requests")
+    .update({ photo_paths: paths })
+    .eq("id", requestId);
+  if (error) throw new Error(`Falha ao salvar fotos: ${error.message}`);
+
+  if (request.order_id) {
+    const { data: order } = await db
+      .from("orders")
+      .select("id, status")
+      .eq("id", request.order_id)
+      .maybeSingle();
+    if (order) {
+      await db.from("order_events").insert({
+        order_id: order.id,
+        status: (order as { status: string }).status,
+        note: "Cliente enviou as fotos do pet.",
+      });
+    }
+  }
+}
+
 export async function getPetMiniatureRequest(id: string): Promise<PetMiniatureRequest | null> {
   const db = getServiceClient();
   const { data, error } = await db
@@ -204,7 +279,8 @@ export async function getPetMiniatureRequestsByOrderId(
     .from("pet_miniature_requests")
     .select("*")
     .eq("order_id", orderId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true }); // desempate estável (várias criadas de uma vez)
   if (error) throw new Error(`Falha ao buscar encomendas pelo pedido: ${error.message}`);
   return (data ?? []) as PetMiniatureRequest[];
 }

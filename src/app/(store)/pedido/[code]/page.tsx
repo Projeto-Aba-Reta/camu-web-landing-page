@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getOrderByCode } from "@/lib/store";
+import { getPetMiniatureRequestsByOrderId } from "@/lib/pet-miniature";
 import { statusLabel, timelineIndex } from "@/lib/status";
 import type { OrderStatus } from "@/lib/types";
 import OrderTimeline from "@/components/store/OrderTimeline";
@@ -26,6 +28,11 @@ export default async function AcompanharPage({ params }: { params: Promise<Param
   const { order, items, events } = data;
 
   const currentIndex = timelineIndex(order.status as OrderStatus);
+
+  // Fluxo "expressa": pagou mas ainda falta enviar as fotos do pet.
+  const petRequests = await getPetMiniatureRequestsByOrderId(order.id);
+  const petPhotosPending =
+    petRequests.length > 0 && petRequests.some((r) => r.photo_paths.length === 0);
 
   // Datas por passo: 0 = criação do pedido; passos seguintes seguem os eventos.
   const laterEventDates = events
@@ -57,6 +64,25 @@ export default async function AcompanharPage({ params }: { params: Promise<Param
         </span>
       </div>
       <p className="mb-10 font-sans text-sm text-charcoal/60">{itemsSummary}</p>
+
+      {petPhotosPending && (
+        <div className="mb-10 flex flex-wrap items-center justify-between gap-4 rounded-2xl border-[3px] border-charcoal bg-coral/15 px-6 py-5">
+          <div>
+            <div className="mb-1 font-heading text-[15px] font-bold text-charcoal">
+              Falta mandar as fotos do seu pet 📸
+            </div>
+            <div className="font-sans text-[13px] text-charcoal/65">
+              A produção só começa quando recebermos as fotos.
+            </div>
+          </div>
+          <Link
+            href={`/miniatura-pet/expressa/fotos/${order.order_code}`}
+            className="sticker-shadow rounded-full border-[3px] border-charcoal bg-teal px-6 py-3 font-heading text-[13.5px] font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none"
+          >
+            Enviar as fotos
+          </Link>
+        </div>
+      )}
 
       {currentIndex === -1 ? (
         <div className="rounded-2xl border-[3px] border-charcoal bg-offwhite-2 p-6 font-sans text-charcoal/75">

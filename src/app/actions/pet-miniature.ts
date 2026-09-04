@@ -4,8 +4,11 @@ import { after } from "next/server";
 import { getPaymentGateway, paymentBypassEnabled, orderConfirmedUrl } from "@/lib/payments";
 import { runPetMiniatureGeneration, retryPetMiniatureGeneration } from "@/lib/pet-miniature-pipeline";
 import {
+  attachPhotosToRequest,
+  createExpressPetMiniatureRequests,
   createPetMiniatureRequest,
   getPetMiniatureRequest,
+  getPetMiniatureRequestsByOrderId,
   linkOrder,
   publicMediaUrl,
   setSelectedVariant,
@@ -15,6 +18,7 @@ import {
 import {
   applyPaymentStatus,
   createOrder,
+  getOrderByCode,
   getPetMiniaturePricing,
   setOrderPreference,
 } from "@/lib/store";
@@ -319,5 +323,144 @@ export async function approvePetMiniatureCartAndPay(
   } catch (err) {
     console.error("approvePetMiniatureCartAndPay falhou", err);
     return { ok: false, error: errorMessage(err) ?? "Erro inesperado ao gerar o pagamento." };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Fluxo "expressa": paga primeiro, manda as fotos depois. Sem prévia de IA,
+// sem nome, sem telefone — só e-mail. A tela é acessada só por URL
+// (/miniatura-pet/expressa).
+// ---------------------------------------------------------------------------
+
+const MAX_EXPRESS_PETS = 6;
+
+export type ExpressPetMiniatureInput = {
+  variant: PetMiniatureVariant;
+  quantity: number;
+  email: string;
+  address: PetMiniatureAddress;
+};
+
+/** Cria o pedido da miniatura (uma ou várias, mesma variante), aplica a
+ *  promoção "leve 2" e devolve a URL de pagamento. As encomendas nascem sem
+ *  fotos — o cliente envia depois em /miniatura-pet/expressa/fotos/[code]. */
+export async function createExpressPetMiniatureOrderAndPay(
+  input: ExpressPetMiniatureInput,
+): Promise<PetMiniatureApprovalResult> {
+  const variant = input?.variant;
+  if (variant !== "sem_pintura" && variant !== "com_pintura") {
+    return { ok: false, error: "Escolha a versão da miniatura (com ou sem pintura)." };
+  }
+
+  const quantity = Math.floor(Number(input?.quantity));
+  if (!Number.isFinite(quantity) || quantity < 1 || quantity > MAX_EXPRESS_PETS) {
+    return { ok: false, error: `Informe de 1 a ${MAX_EXPRESS_PETS} pets.` };
+  }
+
+  const email = String(input?.email ?? "").trim().toLowerCase();
+  if (!isValidEmail(email)) {
+    return { ok: false, error: "Digite um e-mail válido — é por ele que você manda as fotos e acompanha o pedido." };
+  }
+
+  const cep = (input?.address?.cep ?? "").trim();
+  if (!CEP_RE.test(cep)) {
+    return { ok: false, error: "Informe um CEP válido (formato 00000-000) para a entrega." };
+  }
+  const line = (input?.address?.line ?? "").trim();
+  const city = (input?.address?.city ?? "").trim();
+  const uf = (input?.address?.uf ?? "").trim();
+  if (!line || !city || !uf) {
+    return { ok: false, error: "Endereço de entrega incompleto — nenhum campo pode ficar vazio." };
+  }
+
+  const productId = PRODUCT_ID_BY_VARIANT[variant];
+  if (!productId) {
+    return { ok: false, error: "Produto de miniatura de pet ainda não está configurado." };
+  }
+
+  const pricing = await getPetMiniaturePricing();
+  const unitPriceCents =
+    variant === "com_pintura" ? pricing.comPinturaCents : pricing.semPinturaCents;
+  if (unitPriceCents == null) {
+    return { ok: false, error: "Preço da miniatura indisponível no momento. Tente de novo em instantes." };
+  }
+
+  // Promoção "leve 2" — recalculada no servidor a partir do preço real.
+  const cartPricing = computePetCartPricing(
+    Array.from({ length: quantity }, (_, i) => ({ key: String(i), unitPriceCents })),
+  );
+
+  try {
+    const { order } = await createOrder({
+      items: [{ productId, variant: VARIANT_LABEL[variant], qty: quantity }],
+      discountCents: cartPricing.discountCents,
+      customer: { name: "", email, phone: "", cep, line, city, uf },
+    });
+
+    await createExpressPetMiniatureRequests({
+      email,
+      variant,
+      orderId: order.id,
+      count: quantity,
+    });
+
+    if (paymentBypassEnabled()) {
+      await applyPaymentStatus(order.order_code, "approved", null);
+      return { ok: true, initPoint: orderConfirmedUrl(order.order_code) };
+    }
+
+    const { sessionId, initPoint } = await getPaymentGateway().createCheckout({
+      orderCode: order.order_code,
+      items: cartPricing.lines.map((l, i) => ({
+        title: `Miniatura do seu pet — ${VARIANT_LABEL[variant]}${quantity > 1 ? ` (${i + 1}/${quantity})` : ""}`,
+        quantity: 1,
+        unit_price: l.netPriceCents / 100,
+      })),
+      shippingReais: order.shipping_cents / 100,
+      payer: { email },
+    });
+
+    await setOrderPreference(order.id, sessionId);
+    return { ok: true, initPoint };
+  } catch (err) {
+    console.error("createExpressPetMiniatureOrderAndPay falhou", err);
+    return { ok: false, error: errorMessage(err) ?? "Erro inesperado ao gerar o pagamento." };
+  }
+}
+
+export type ExpressPetPhotosResult = { ok: true } | { ok: false; error: string };
+
+/** Recebe as fotos de um pet (fluxo expressa, pós-pagamento). Identifica a
+ *  encomenda pelo par (código do pedido + índice) pra não expor o uuid. */
+export async function uploadExpressPetPhotos(
+  orderCode: string,
+  petIndex: number,
+  formData: FormData,
+): Promise<ExpressPetPhotosResult> {
+  const data = await getOrderByCode(String(orderCode ?? "").trim());
+  if (!data) return { ok: false, error: "Pedido não encontrado." };
+
+  const requests = await getPetMiniatureRequestsByOrderId(data.order.id);
+  const request = requests[Math.floor(Number(petIndex))];
+  if (!request) return { ok: false, error: "Não encontramos esse pet no pedido." };
+  if (request.photo_paths.length > 0) {
+    return { ok: false, error: "As fotos deste pet já foram enviadas." };
+  }
+
+  const files = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
+  const photos: IncomingPhoto[] = [];
+  for (const file of files) {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    photos.push({ name: file.name, type: file.type, buffer });
+  }
+
+  const validationError = validatePhotos(photos);
+  if (validationError) return { ok: false, error: validationError };
+
+  try {
+    await attachPhotosToRequest(request.id, photos);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Não foi possível enviar as fotos." };
   }
 }

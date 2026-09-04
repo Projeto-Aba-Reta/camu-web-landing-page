@@ -34,6 +34,10 @@ export default async function ConfirmadoPage({ params }: { params: Promise<Param
   const isPaintedPetMiniature =
     approved && petRequests.some((r) => r.selected_variant === "com_pintura");
 
+  // Fluxo "expressa": o cliente paga primeiro e ainda precisa enviar as fotos.
+  const petPhotosPending =
+    petRequests.length > 0 && petRequests.some((r) => r.photo_paths.length === 0);
+
   const waNumber = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "").replace(/\D/g, "");
   const paintedWaUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(
     `Olá! Fiz o pedido #${order.order_code} da miniatura pintada do meu pet. ` +
@@ -97,6 +101,24 @@ export default async function ConfirmadoPage({ params }: { params: Promise<Param
           <span>5-7 dias úteis</span>
         </div>
       </div>
+
+      {petPhotosPending && (
+        <div className="mb-8 w-full max-w-md rounded-2xl border-[3px] border-charcoal bg-coral/15 p-6 text-left">
+          <div className="mb-1.5 font-heading text-[15px] font-bold text-charcoal">
+            Falta mandar as fotos 📸
+          </div>
+          <p className="mb-4 font-sans text-[13.5px] leading-relaxed text-charcoal/70">
+            Sua miniatura só entra na fila quando recebermos as fotos do seu pet. É rápido — de 3 a 4
+            fotos por pet. O link também foi pro seu e-mail.
+          </p>
+          <Link
+            href={`/miniatura-pet/expressa/fotos/${order.order_code}`}
+            className="sticker-shadow inline-block rounded-full border-[3px] border-charcoal bg-teal px-6 py-3 font-heading text-[13.5px] font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none"
+          >
+            Enviar as fotos agora
+          </Link>
+        </div>
+      )}
 
       {isPaintedPetMiniature && (
         <div className="mb-8 w-full max-w-md rounded-2xl border-[3px] border-charcoal bg-teal/15 p-6 text-left">
