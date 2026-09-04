@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import TrackedLink from "@/components/TrackedLink";
-import { heroPet } from "@/lib/data";
+import { heroPet, petBeforeAfterExamples } from "@/lib/data";
 import { STORE_ENABLED } from "@/lib/features";
+import PetBeforeAfterCarousel from "@/components/store/PetBeforeAfterCarousel";
 
 export default function Hero() {
   return (
@@ -64,17 +64,7 @@ export default function Hero() {
         <div className="mt-10 flex items-center justify-center md:mt-0">
           {/* wrapper do tamanho exato do card para o badge não desgrudar da imagem */}
           <div className="relative">
-            <div className="sticker-shadow-lg flex h-64 w-64 rotate-3 items-center justify-center rounded-[32px] border-4 border-charcoal bg-teal sm:h-72 sm:w-72 md:h-[340px] md:w-[340px]">
-              {/* [substituir por foto real: pet + miniatura impressa lado a lado] */}
-              <Image
-                src="/images/leon-printing.png"
-                alt="Leon, mascote camaleão da Camu, imprimindo uma miniatura em 3D"
-                width={241}
-                height={185}
-                priority
-                className="-rotate-3 h-[78%] w-[78%] object-contain"
-              />
-            </div>
+            <PetBeforeAfterCarousel examples={petBeforeAfterExamples} variant="hero" />
             <span className="absolute -bottom-3.5 -left-3.5 -rotate-6 whitespace-nowrap rounded-full border-[3px] border-charcoal bg-offwhite px-3 py-2 font-heading text-xs font-bold text-charcoal sm:px-4 sm:py-2.5 sm:text-[13px]">
               você aprova antes de pagar
             </span>

@@ -9,9 +9,16 @@ const SLIDE_MS = 6600;
 
 type Props = {
   examples: PetBeforeAfterExample[];
+  /** "page": card grande usado em /miniatura-pet/expressa. "hero": card compacto e rotacionado, no estilo dos cartões sticker da home. */
+  variant?: "page" | "hero";
 };
 
-export default function PetBeforeAfterCarousel({ examples }: Props) {
+const FRAME_CLASSES: Record<NonNullable<Props["variant"]>, string> = {
+  page: "mx-auto w-full max-w-sm overflow-hidden rounded-[20px] border-[3px] border-charcoal bg-offwhite-2 sm:max-w-md",
+  hero: "sticker-shadow-lg h-64 w-64 rotate-3 overflow-hidden rounded-[32px] border-4 border-charcoal bg-offwhite-2 sm:h-72 sm:w-72 md:h-[340px] md:w-[340px]",
+};
+
+export default function PetBeforeAfterCarousel({ examples, variant = "page" }: Props) {
   const [slide, setSlide] = useState(0);
   const current = examples[slide];
 
@@ -29,10 +36,10 @@ export default function PetBeforeAfterCarousel({ examples }: Props) {
   if (current == null) return null;
 
   return (
-    <div className="mb-10">
-      <div className="relative mx-auto w-full max-w-sm overflow-hidden rounded-[20px] border-[3px] border-charcoal bg-offwhite-2 sm:max-w-md">
+    <div className={variant === "hero" ? "" : "mb-10"}>
+      <div className={`relative ${FRAME_CLASSES[variant]}`}>
         {/* key força remount ao trocar de pet, reiniciando o ciclo antes/depois do zero */}
-        <PetBeforeAfterSlide key={current.petName} example={current} priority={slide === 0} />
+        <PetBeforeAfterSlide key={current.petName} example={current} priority={slide === 0} compact={variant === "hero"} />
 
         {examples.length > 1 && (
           <>
@@ -72,9 +79,11 @@ export default function PetBeforeAfterCarousel({ examples }: Props) {
         </div>
       )}
 
-      <p className="mt-3 text-center font-sans text-[12.5px] text-charcoal/55">
-        Toque na imagem pra ver a transformação.
-      </p>
+      {variant === "page" && (
+        <p className="mt-3 text-center font-sans text-[12.5px] text-charcoal/55">
+          Toque na imagem pra ver a transformação.
+        </p>
+      )}
     </div>
   );
 }
@@ -82,9 +91,11 @@ export default function PetBeforeAfterCarousel({ examples }: Props) {
 function PetBeforeAfterSlide({
   example,
   priority,
+  compact = false,
 }: {
   example: PetBeforeAfterExample;
   priority: boolean;
+  compact?: boolean;
 }) {
   const [showAfter, setShowAfter] = useState(false);
 
@@ -136,11 +147,17 @@ function PetBeforeAfterSlide({
       </span>
 
       <span
-        className={`absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-charcoal px-3.5 py-1.5 font-heading text-xs font-extrabold uppercase tracking-wide text-charcoal transition-colors duration-300 ${
-          showAfter ? "bg-teal" : "bg-coral"
-        }`}
+        className={`absolute bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-charcoal font-heading font-extrabold uppercase tracking-wide text-charcoal transition-colors duration-300 ${
+          compact ? "px-2.5 py-1 text-[10px]" : "px-3.5 py-1.5 text-xs"
+        } ${showAfter ? "bg-teal" : "bg-coral"}`}
       >
-        {showAfter ? `Depois — a miniatura do ${example.petName}` : `Antes — a foto do ${example.petName}`}
+        {compact
+          ? showAfter
+            ? "Depois"
+            : "Antes"
+          : showAfter
+            ? `Depois — a miniatura do ${example.petName}`
+            : `Antes — a foto do ${example.petName}`}
       </span>
     </button>
   );

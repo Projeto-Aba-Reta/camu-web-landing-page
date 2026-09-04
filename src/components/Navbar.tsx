@@ -9,6 +9,7 @@ const mobileLinks = [
   { label: "Miniatura do pet", href: "/miniatura-pet" },
   ...(STORE_ENABLED ? [{ label: "Loja", href: "/loja" }] : []),
   ...navLinks,
+  { label: "Minha conta", href: "/conta" },
 ];
 
 export default function Navbar() {
@@ -64,6 +65,12 @@ export default function Navbar() {
         </ul>
 
         <div className="flex items-center gap-3">
+          <Link
+            href="/conta"
+            className="hidden rounded-full border-2 border-charcoal bg-transparent px-4 py-2 font-heading text-[13px] font-bold text-charcoal transition-colors hover:bg-charcoal/5 md:block"
+          >
+            Minha conta
+          </Link>
           <TrackedLink
             href="/miniatura-pet"
             event="home_cta_miniatura"
