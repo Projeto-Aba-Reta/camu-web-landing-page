@@ -52,6 +52,7 @@ export default function PetMiniatureCart() {
     );
   }
 
+  const ufFilled = address.uf.trim().length > 0;
   const freteIncluso = isFreteInclusoUF(address.uf);
   const shippingFree = !FRETE_ENABLED && (freteIncluso || !address.uf.trim());
   const shippingLabel = FRETE_ENABLED
@@ -191,10 +192,14 @@ export default function PetMiniatureCart() {
             <span>−{formatBRL(pricing.discountCents)}</span>
           </div>
         )}
-        <div className="mb-3.5 flex justify-between font-sans text-sm font-medium text-charcoal">
-          <span>Frete</span>
-          <span className={shippingFree ? "font-bold text-teal" : undefined}>{shippingLabel}</span>
-        </div>
+        {ufFilled && (
+          <div className="mb-3.5 flex justify-between font-sans text-sm font-medium text-charcoal">
+            <span>Frete</span>
+            <span className={shippingFree ? "font-bold text-teal" : undefined}>
+              {shippingFree ? "Frete grátis" : shippingLabel}
+            </span>
+          </div>
+        )}
         <div className="mb-3.5 h-0.5 bg-charcoal/15" />
         <div className="mb-6 flex justify-between font-heading text-lg font-extrabold text-charcoal">
           <span>Total</span>
