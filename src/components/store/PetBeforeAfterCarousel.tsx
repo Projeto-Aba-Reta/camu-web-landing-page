@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import type { PetBeforeAfterExample } from "@/lib/data";
 
-const PHASE_MS = 2200;
-const SLIDE_MS = 6600;
+const SLIDE_MS = 5000;
 
 type Props = {
   examples: PetBeforeAfterExample[];
@@ -38,7 +37,7 @@ export default function PetBeforeAfterCarousel({ examples, variant = "page" }: P
   return (
     <div className={variant === "hero" ? "" : "mb-10"}>
       <div className={`relative ${FRAME_CLASSES[variant]}`}>
-        {/* key força remount ao trocar de pet, reiniciando o ciclo antes/depois do zero */}
+        {/* key força remount ao trocar de pet, disparando a animação de transição entre exemplos */}
         <PetBeforeAfterSlide key={current.petName} example={current} priority={slide === 0} compact={variant === "hero"} />
 
         {examples.length > 1 && (
@@ -81,7 +80,7 @@ export default function PetBeforeAfterCarousel({ examples, variant = "page" }: P
 
       {variant === "page" && (
         <p className="mt-3 text-center font-sans text-[12.5px] text-charcoal/55">
-          Toque na imagem pra ver a transformação.
+          Foto que o cliente manda → miniatura impressa em 3D.
         </p>
       )}
     </div>
@@ -97,68 +96,63 @@ function PetBeforeAfterSlide({
   priority: boolean;
   compact?: boolean;
 }) {
-  const [showAfter, setShowAfter] = useState(false);
-
-  // Alterna foto → miniatura em looping enquanto este pet estiver em tela.
-  useEffect(() => {
-    const t = setInterval(() => setShowAfter((v) => !v), PHASE_MS);
-    return () => clearInterval(t);
-  }, []);
-
   return (
-    <button
-      type="button"
-      onClick={() => setShowAfter((v) => !v)}
-      aria-label="Ver antes e depois"
-      className="relative block aspect-square w-full cursor-pointer"
-    >
-      <Image
-        src={example.beforeSrc}
-        alt={example.beforeAlt}
-        fill
-        sizes="(min-width: 640px) 400px, 90vw"
-        className={`object-cover transition-all duration-700 ease-in-out ${
-          showAfter ? "scale-105 opacity-0 blur-sm" : "scale-100 opacity-100 blur-0"
-        }`}
-        priority={priority}
-      />
-      <Image
-        src={example.afterSrc}
-        alt={example.afterAlt}
-        fill
-        sizes="(min-width: 640px) 400px, 90vw"
-        className={`object-cover transition-all duration-700 ease-in-out ${
-          showAfter ? "scale-100 opacity-100 blur-0" : "scale-95 opacity-0 blur-sm"
-        }`}
-      />
+    <div className="pet-transform-in relative flex aspect-square w-full">
+      <div className="relative h-full w-1/2 overflow-hidden">
+        <Image
+          src={example.beforeSrc}
+          alt={example.beforeAlt}
+          fill
+          sizes="(min-width: 640px) 200px, 45vw"
+          className="object-cover"
+          priority={priority}
+        />
+        <span
+          className={`absolute left-1.5 top-1.5 rounded-full border-2 border-charcoal bg-coral font-heading font-extrabold uppercase tracking-wide text-charcoal ${
+            compact ? "px-2 py-0.5 text-[9px]" : "px-2.5 py-1 text-[10px]"
+          }`}
+        >
+          Antes
+        </span>
+      </div>
 
-      {/* key muda a cada troca de fase, remontando o brilho e reiniciando a animação CSS */}
+      <div className="relative h-full w-1/2 overflow-hidden border-l-[3px] border-charcoal">
+        <Image
+          src={example.afterSrc}
+          alt={example.afterAlt}
+          fill
+          sizes="(min-width: 640px) 200px, 45vw"
+          className="object-cover"
+        />
+        <span
+          className={`absolute right-1.5 top-1.5 rounded-full border-2 border-charcoal bg-teal font-heading font-extrabold uppercase tracking-wide text-charcoal ${
+            compact ? "px-2 py-0.5 text-[9px]" : "px-2.5 py-1 text-[10px]"
+          }`}
+        >
+          Depois
+        </span>
+      </div>
+
+      {/* pulso de brilho e seta central — só ao entrar um novo exemplo no carrossel */}
       <span
-        key={`sweep-${showAfter}`}
-        className="pet-transform-sweep pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-offwhite/70 to-transparent"
+        className="pet-transform-sweep pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-offwhite/70 to-transparent"
         aria-hidden
       />
       <span
-        key={`sparkle-${showAfter}`}
+        className="absolute left-1/2 top-1/2 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-charcoal bg-offwhite font-heading text-sm font-extrabold text-charcoal"
+        aria-hidden
+      >
+        →
+      </span>
+
+      <span
         className="pet-transform-sparkle pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl"
         aria-hidden
       >
         ✨
       </span>
 
-      <span
-        className={`absolute bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-charcoal font-heading font-extrabold uppercase tracking-wide text-charcoal transition-colors duration-300 ${
-          compact ? "px-2.5 py-1 text-[10px]" : "px-3.5 py-1.5 text-xs"
-        } ${showAfter ? "bg-teal" : "bg-coral"}`}
-      >
-        {compact
-          ? showAfter
-            ? "Depois"
-            : "Antes"
-          : showAfter
-            ? `Depois — a miniatura do ${example.petName}`
-            : `Antes — a foto do ${example.petName}`}
-      </span>
-    </button>
+      <span className="sr-only">{`${example.petName}: antes (foto) e depois (miniatura impressa em 3D)`}</span>
+    </div>
   );
 }

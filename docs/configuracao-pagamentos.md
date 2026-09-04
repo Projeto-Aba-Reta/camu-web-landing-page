@@ -75,7 +75,7 @@ PAYMENTS_SKIP_ENABLED=true
 
 ### 3.1 Credenciais
 
-1. <https://www.mercadopago.com.br/developers/panel/app> → sua aplicação.
+1. [https://www.mercadopago.com.br/developers/panel/app](https://www.mercadopago.com.br/developers/panel/app) → sua aplicação.
 2. Copie o **Access Token**:
    - **Credenciais de teste** → `.env.local` de dev.
    - **Credenciais de produção** → variáveis de ambiente do deploy.
@@ -108,7 +108,7 @@ O MP **não alcança** `localhost`. Duas opções:
 
 ### 3.4 Cartões de teste
 
-<https://www.mercadopago.com.br/developers/pt/docs/checkout-pro/additional-content/your-integrations/test/cards>
+[https://www.mercadopago.com.br/developers/pt/docs/checkout-pro/additional-content/your-integrations/test/cards](https://www.mercadopago.com.br/developers/pt/docs/checkout-pro/additional-content/your-integrations/test/cards)
 
 ---
 
@@ -116,14 +116,14 @@ O MP **não alcança** `localhost`. Duas opções:
 
 ### 4.1 Credenciais
 
-1. <https://dashboard.stripe.com/apikeys> (ative o **modo de teste** no topo).
+1. [https://dashboard.stripe.com/apikeys](https://dashboard.stripe.com/apikeys) (ative o **modo de teste** no topo).
 2. Copie a **Secret key** (`sk_test_...`) → `STRIPE_SECRET_KEY`.
 3. Em produção, repita com a chave `sk_live_...` (exige a conta ativada).
 4. A moeda das sessões é fixada em **BRL** no código.
 
 ### 4.2 Webhook (produção)
 
-1. <https://dashboard.stripe.com/webhooks> → **Add endpoint**.
+1. [https://dashboard.stripe.com/webhooks](https://dashboard.stripe.com/webhooks) → **Add endpoint**.
 2. **Endpoint URL:**
    ```
    https://www.camu.com.br/api/webhooks/stripe
@@ -165,14 +165,14 @@ stripe trigger checkout.session.completed
 
 ### 4.4 Cartões de teste
 
-| Cenário            | Número                |
-|--------------------|-----------------------|
-| Aprovado           | `4242 4242 4242 4242` |
-| Requer autenticação| `4000 0025 0000 3155` |
-| Recusado           | `4000 0000 0000 9995` |
+| Cenário              | Número                 |
+| --------------------- | ----------------------- |
+| Aprovado              | `4242 4242 4242 4242` |
+| Requer autenticação | `4000 0025 0000 3155` |
+| Recusado              | `4000 0000 0000 9995` |
 
 Qualquer data futura, qualquer CVC, qualquer CEP.
-<https://docs.stripe.com/testing>
+[https://docs.stripe.com/testing](https://docs.stripe.com/testing)
 
 ---
 
@@ -183,7 +183,7 @@ uma **cobrança** (`/v1/billing`) one-time e redireciona pra `data.url`.
 
 ### 4B.1 Credenciais
 
-1. <https://app.abacatepay.com> → **Integrar** → **API Keys**.
+1. [https://app.abacatepay.com](https://app.abacatepay.com) → **Integrar** → **API Keys**.
 2. Copie a key de **dev** (`devMode`) pro `.env.local`; a de **produção** vai nas
    envs do deploy.
 3. Cole em `ABACATEPAY_API_KEY`.
@@ -255,4 +255,4 @@ Pegue a URL `https://...` gerada e:
 - [ ] `ABACATEPAY_API_KEY` (produção) + `ABACATEPAY_WEBHOOK_SECRET` preenchidos (se AbacatePay)
 - [ ] `PAYMENTS_SKIP_ENABLED` **removido** ou ≠ `true`
 - [ ] compra de ponta a ponta testada: checkout → pagamento → webhook →
-      `/pedido/confirmado/[code]` mostra "Pedido confirmado" → status `paid`
+  `/pedido/confirmado/[code]` mostra "Pedido confirmado" → status `paid`

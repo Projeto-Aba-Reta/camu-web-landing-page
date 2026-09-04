@@ -55,7 +55,23 @@ body {
   );
 }
 
-/* Carrossel "antes e depois" da miniatura de pet — pulso de brilho no instante da transformação */
+/* Carrossel "antes e depois" da miniatura de pet — antes/depois lado a lado desde o 1º frame;
+   a animação abaixo só roda na entrada de um novo par (troca de pet no carrossel). */
+@keyframes pet-transform-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.pet-transform-in {
+  animation: pet-transform-in 500ms ease-out both;
+}
+
 @keyframes pet-transform-sparkle {
   0% {
     opacity: 0;

@@ -8,8 +8,8 @@ export const heroPet = {
   title: ["A miniatura", "do seu pet, em 3D."],
   subtitle:
     "Manda 3 a 4 fotos e recebe uma prévia gerada por IA de como a peça vai ficar impressa. Você só paga se aprovar.",
-  priceFrom: "a partir de R$ 60.00", // TODO: confirmar preço real
-  leadTime: "pronto em ~10 dias úteis", // TODO: confirmar prazo real
+  priceFrom: "a partir de R$ 60.00",
+  leadTime: "pronto de 7 a 15 dias úteis",
   previewNote: "prévia grátis antes de pagar",
   primaryCta: { label: "Fazer a miniatura do meu pet", href: "/miniatura-pet" },
   secondaryCtas: [
@@ -46,6 +46,13 @@ export const petBeforeAfterExamples: PetBeforeAfterExample[] = [
     beforeAlt: "Foto do pet Tofu enviada pelo cliente",
     afterSrc: "/images/Tofu_Peca.png",
     afterAlt: "Miniatura impressa em 3D do pet Tofu",
+  },
+  {
+    petName: "Spike",
+    beforeSrc: "/images/dog_foto.png",
+    beforeAlt: "Foto do pet Spike enviada pelo cliente",
+    afterSrc: "/images/dog_depois.jpeg",
+    afterAlt: "Miniatura impressa em 3D do pet Spike",
   },
 ];
 
