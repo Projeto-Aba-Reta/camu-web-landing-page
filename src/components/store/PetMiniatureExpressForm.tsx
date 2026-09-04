@@ -14,7 +14,6 @@ import { cepDigits } from "@/lib/cep";
 import { useFreteQuote } from "@/lib/use-frete-quote";
 import { isValidEmail } from "@/lib/contact";
 import { trackFunnel } from "@/lib/analytics";
-import type { PetMiniatureVariant } from "@/lib/types";
 import AddressFields, {
   addressLine,
   emptyAddress,
@@ -26,19 +25,17 @@ const inputClass =
   "w-full rounded-xl border-2 border-charcoal bg-offwhite px-4 py-3.5 font-sans text-sm text-charcoal outline-none placeholder:text-charcoal/45 focus:border-teal-dark";
 
 type Props = {
-  semPinturaCents: number | null;
   comPinturaCents: number | null;
 };
 
-export default function PetMiniatureExpressForm({ semPinturaCents, comPinturaCents }: Props) {
-  const [variant, setVariant] = useState<PetMiniatureVariant>("com_pintura");
+export default function PetMiniatureExpressForm({ comPinturaCents }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState<AddressFormValue>(emptyAddress);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const unitPriceCents = variant === "com_pintura" ? comPinturaCents : semPinturaCents;
+  const unitPriceCents = comPinturaCents;
   const priceReady = unitPriceCents != null;
 
   const pricing = useMemo(
@@ -110,7 +107,6 @@ export default function PetMiniatureExpressForm({ semPinturaCents, comPinturaCen
 
     setSubmitting(true);
     const res = await createExpressPetMiniatureOrderAndPay({
-      variant,
       quantity,
       email: email.trim(),
       address: {
@@ -133,36 +129,11 @@ export default function PetMiniatureExpressForm({ semPinturaCents, comPinturaCen
     <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr]">
       <div className="flex flex-col gap-7">
         <section>
-          <h2 className="mb-3 font-heading text-xl font-bold text-charcoal">Versão da miniatura</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {(
-              [
-                { v: "sem_pintura", label: "Sem pintura", cents: semPinturaCents, hint: "Cor sólida, mais simples." },
-                { v: "com_pintura", label: "Com pintura", cents: comPinturaCents, hint: "Pintada nas cores reais do seu pet." },
-              ] as const
-            ).map((opt) => (
-              <button
-                key={opt.v}
-                type="button"
-                onClick={() => setVariant(opt.v)}
-                className={`rounded-2xl border-[3px] border-charcoal p-4 text-left transition-colors ${
-                  variant === opt.v ? "bg-teal" : "bg-offwhite-2 hover:bg-charcoal/5"
-                }`}
-              >
-                <p className="font-heading font-bold text-charcoal">{opt.label}</p>
-                {opt.cents != null && (
-                  <p className="font-sans text-sm text-charcoal/70">{formatBRL(opt.cents)}</p>
-                )}
-                <p className="mt-1 font-sans text-[12.5px] text-charcoal/60">{opt.hint}</p>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section>
           <h2 className="mb-2 font-heading text-xl font-bold text-charcoal">Quantos pets?</h2>
           <p className="mb-3 font-sans text-sm text-charcoal/60">
-            Cada par de miniaturas sai com desconto. Você manda as fotos de cada pet depois do pagamento.
+            Miniatura pintada nas cores reais do seu pet
+            {unitPriceCents != null && <> — {formatBRL(unitPriceCents)} cada</>}. Cada par sai com
+            desconto. Você manda as fotos de cada pet depois do pagamento.
           </p>
           <div className="flex items-center gap-3">
             <button

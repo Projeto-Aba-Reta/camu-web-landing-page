@@ -60,7 +60,18 @@ export default function PetMiniaturePreview({
   const [genError, setGenError] = useState(initialError);
   const [busy, setBusy] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [expandedUrl, setExpandedUrl] = useState<string | null>(null);
+  const [expandedAlt, setExpandedAlt] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!expandedUrl) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setExpandedUrl(null);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [expandedUrl]);
 
   const inCart = petCart.items.find((i) => i.requestId === requestId) ?? null;
 
@@ -177,15 +188,28 @@ export default function PetMiniaturePreview({
       <div className="flex w-full flex-wrap justify-center gap-6">
         <div className="flex w-full max-w-[260px] flex-col items-center gap-3">
           {plainUrl && (
-            <div className="sticker-shadow overflow-hidden rounded-2xl border-[3px] border-charcoal">
+            <button
+              type="button"
+              onClick={() => {
+                setExpandedUrl(plainUrl);
+                setExpandedAlt("Prévia sem pintura da miniatura do pet");
+              }}
+              className="sticker-shadow group relative overflow-hidden rounded-2xl border-[3px] border-charcoal"
+              aria-label="Ampliar prévia sem pintura"
+            >
               <Image
                 src={plainUrl}
                 alt="Prévia sem pintura da miniatura do pet"
                 width={320}
                 height={320}
-                className="h-auto w-full object-cover"
+                className="h-auto w-full object-cover transition-transform group-hover:scale-105"
               />
-            </div>
+              <span className="absolute inset-0 flex items-center justify-center bg-charcoal/0 opacity-0 transition-opacity group-hover:bg-charcoal/20 group-hover:opacity-100">
+                <span className="rounded-full border-2 border-offwhite bg-charcoal/70 px-3 py-1 font-heading text-xs font-bold text-offwhite">
+                  Ampliar
+                </span>
+              </span>
+            </button>
           )}
           <div>
             <p className="font-heading font-bold text-charcoal">Sem pintura</p>
@@ -204,15 +228,28 @@ export default function PetMiniaturePreview({
 
         <div className="flex w-full max-w-[260px] flex-col items-center gap-3">
           {paintedUrl && (
-            <div className="sticker-shadow-lg overflow-hidden rounded-2xl border-[3px] border-charcoal">
+            <button
+              type="button"
+              onClick={() => {
+                setExpandedUrl(paintedUrl);
+                setExpandedAlt("Prévia pintada da miniatura do pet");
+              }}
+              className="sticker-shadow-lg group relative overflow-hidden rounded-2xl border-[3px] border-charcoal"
+              aria-label="Ampliar prévia pintada"
+            >
               <Image
                 src={paintedUrl}
                 alt="Prévia pintada da miniatura do pet"
                 width={320}
                 height={320}
-                className="h-auto w-full object-cover"
+                className="h-auto w-full object-cover transition-transform group-hover:scale-105"
               />
-            </div>
+              <span className="absolute inset-0 flex items-center justify-center bg-charcoal/0 opacity-0 transition-opacity group-hover:bg-charcoal/20 group-hover:opacity-100">
+                <span className="rounded-full border-2 border-offwhite bg-charcoal/70 px-3 py-1 font-heading text-xs font-bold text-offwhite">
+                  Ampliar
+                </span>
+              </span>
+            </button>
           )}
           <div>
             <p className="font-heading font-bold text-charcoal">Com pintura</p>
@@ -291,6 +328,37 @@ export default function PetMiniaturePreview({
       >
         Gerar nova tentativa
       </button>
+
+      {expandedUrl && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={expandedAlt}
+          onClick={() => setExpandedUrl(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/80 p-4"
+        >
+          <button
+            type="button"
+            onClick={() => setExpandedUrl(null)}
+            aria-label="Fechar"
+            className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full border-[3px] border-charcoal bg-offwhite font-heading text-xl font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5"
+          >
+            ×
+          </button>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="sticker-shadow-lg max-h-[85vh] max-w-[90vw] overflow-hidden rounded-2xl border-[3px] border-charcoal bg-offwhite"
+          >
+            <Image
+              src={expandedUrl}
+              alt={expandedAlt}
+              width={1024}
+              height={1024}
+              className="h-auto max-h-[85vh] w-auto max-w-[90vw] object-contain"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

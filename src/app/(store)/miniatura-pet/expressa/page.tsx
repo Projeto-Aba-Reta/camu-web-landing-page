@@ -56,10 +56,7 @@ export default async function MiniaturaPetExpressaPage() {
         ))}
       </ol>
 
-      <PetMiniatureExpressForm
-        semPinturaCents={pricing.semPinturaCents}
-        comPinturaCents={pricing.comPinturaCents}
-      />
+      <PetMiniatureExpressForm comPinturaCents={pricing.comPinturaCents} />
     </section>
   );
 }

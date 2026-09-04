@@ -1,11 +1,12 @@
 import "server-only";
-import { generatePetMiniatureImages } from "./ai-image";
+import { generatePetMiniatureImages, generatePetMiniaturePaintedImage } from "./ai-image";
 import {
   downloadPhotosBase64,
   getPetMiniatureRequest,
   markFailed,
   markProcessing,
   markReady,
+  markReadyPainted,
 } from "./pet-miniature";
 
 /**
@@ -33,4 +34,22 @@ export async function runPetMiniatureGeneration(requestId: string): Promise<void
 export async function retryPetMiniatureGeneration(requestId: string): Promise<void> {
   await markProcessing(requestId);
   await runPetMiniatureGeneration(requestId);
+}
+
+/** Fluxo "expressa": gera só a prévia PINTADA (esse fluxo só vende a versão
+ *  pintada) a partir das fotos enviadas pós-pagamento. Chamada via `after()`
+ *  a partir de `uploadExpressPetPhotos`. */
+export async function runExpressPetMiniatureGeneration(requestId: string): Promise<void> {
+  try {
+    const request = await getPetMiniatureRequest(requestId);
+    if (!request) return;
+
+    const photos = await downloadPhotosBase64(request);
+    const result = await generatePetMiniaturePaintedImage(photos);
+    await markReadyPainted(requestId, result);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Falha desconhecida ao gerar a prévia.";
+    console.error("[pet-miniature-pipeline:express]", message);
+    await markFailed(requestId, message);
+  }
 }

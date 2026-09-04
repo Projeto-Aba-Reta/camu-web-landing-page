@@ -2,7 +2,11 @@
 
 import { after } from "next/server";
 import { getPaymentGateway, paymentBypassEnabled, orderConfirmedUrl } from "@/lib/payments";
-import { runPetMiniatureGeneration, retryPetMiniatureGeneration } from "@/lib/pet-miniature-pipeline";
+import {
+  runPetMiniatureGeneration,
+  retryPetMiniatureGeneration,
+  runExpressPetMiniatureGeneration,
+} from "@/lib/pet-miniature-pipeline";
 import {
   attachPhotosToRequest,
   createExpressPetMiniatureRequests,
@@ -333,22 +337,21 @@ export async function approvePetMiniatureCartAndPay(
 // ---------------------------------------------------------------------------
 
 export type ExpressPetMiniatureInput = {
-  variant: PetMiniatureVariant;
   quantity: number;
   email: string;
   address: PetMiniatureAddress;
 };
 
-/** Cria o pedido da miniatura (uma ou várias, mesma variante), aplica a
+/** Fluxo expressa: só vende a versão PINTADA — não há escolha de variante. */
+const EXPRESS_VARIANT: PetMiniatureVariant = "com_pintura";
+
+/** Cria o pedido da miniatura (uma ou várias, sempre pintada), aplica a
  *  promoção "leve 2" e devolve a URL de pagamento. As encomendas nascem sem
  *  fotos — o cliente envia depois em /miniatura-pet/expressa/fotos/[code]. */
 export async function createExpressPetMiniatureOrderAndPay(
   input: ExpressPetMiniatureInput,
 ): Promise<PetMiniatureApprovalResult> {
-  const variant = input?.variant;
-  if (variant !== "sem_pintura" && variant !== "com_pintura") {
-    return { ok: false, error: "Escolha a versão da miniatura (com ou sem pintura)." };
-  }
+  const variant = EXPRESS_VARIANT;
 
   const quantity = Math.floor(Number(input?.quantity));
   if (!Number.isFinite(quantity) || quantity < 1) {
@@ -377,8 +380,7 @@ export async function createExpressPetMiniatureOrderAndPay(
   }
 
   const pricing = await getPetMiniaturePricing();
-  const unitPriceCents =
-    variant === "com_pintura" ? pricing.comPinturaCents : pricing.semPinturaCents;
+  const unitPriceCents = pricing.comPinturaCents;
   if (unitPriceCents == null) {
     return { ok: false, error: "Preço da miniatura indisponível no momento. Tente de novo em instantes." };
   }
@@ -457,8 +459,43 @@ export async function uploadExpressPetPhotos(
 
   try {
     await attachPhotosToRequest(request.id, photos);
+    after(() => runExpressPetMiniatureGeneration(request.id));
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Não foi possível enviar as fotos." };
   }
+}
+
+export type ExpressPetMiniatureStatusResult =
+  | {
+      ok: true;
+      status: "processando" | "pronto" | "falhou";
+      paintedPreviewUrl: string | null;
+      error: string | null;
+    }
+  | { ok: false; error: string };
+
+/** Consultada por polling na tela de upload de fotos (fluxo expressa), depois
+ *  que o cliente manda as fotos de um pet. Identifica a encomenda pelo par
+ *  (código do pedido + índice), igual `uploadExpressPetPhotos`, pra não expor
+ *  o uuid da encomenda no client. */
+export async function getExpressPetMiniatureStatus(
+  orderCode: string,
+  petIndex: number,
+): Promise<ExpressPetMiniatureStatusResult> {
+  const data = await getOrderByCode(String(orderCode ?? "").trim());
+  if (!data) return { ok: false, error: "Pedido não encontrado." };
+
+  const requests = await getPetMiniatureRequestsByOrderId(data.order.id);
+  const request = requests[Math.floor(Number(petIndex))];
+  if (!request) return { ok: false, error: "Não encontramos esse pet no pedido." };
+
+  return {
+    ok: true,
+    status: request.status,
+    paintedPreviewUrl: request.generated_image_painted_path
+      ? publicMediaUrl(request.generated_image_painted_path)
+      : null,
+    error: request.ai_error,
+  };
 }

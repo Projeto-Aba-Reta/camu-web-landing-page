@@ -86,21 +86,25 @@ export type PetMiniatureImages = {
   plain: AiImageResult;
 };
 
+function requireClient(): { ai: GoogleGenAI; model: string } {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("IA de imagem não configurada: defina GEMINI_API_KEY em .env.local");
+  }
+  const ai = new GoogleGenAI({ apiKey });
+  const model = process.env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image";
+  return { ai, model };
+}
+
 /** Gera as duas prévias da miniatura (pintada e sem pintura) a partir das
  *  fotos do pet, via Gemini (image generation). */
 export async function generatePetMiniatureImages(
   photos: AiImageInput[],
 ): Promise<PetMiniatureImages> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("IA de imagem não configurada: defina GEMINI_API_KEY em .env.local");
-  }
   if (photos.length === 0) {
     throw new Error("Nenhuma foto do pet fornecida para gerar a prévia.");
   }
-
-  const ai = new GoogleGenAI({ apiKey });
-  const model = process.env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image";
+  const { ai, model } = requireClient();
 
   const [painted, plain] = await Promise.all([
     generateOne(ai, model, PAINTED_PROMPT, photos),
@@ -108,4 +112,16 @@ export async function generatePetMiniatureImages(
   ]);
 
   return { painted, plain };
+}
+
+/** Gera só a prévia PINTADA — usada no fluxo "expressa", que só vende a
+ *  versão pintada (sem opção sem pintura). */
+export async function generatePetMiniaturePaintedImage(
+  photos: AiImageInput[],
+): Promise<AiImageResult> {
+  if (photos.length === 0) {
+    throw new Error("Nenhuma foto do pet fornecida para gerar a prévia.");
+  }
+  const { ai, model } = requireClient();
+  return generateOne(ai, model, PAINTED_PROMPT, photos);
 }

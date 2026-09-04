@@ -230,6 +230,26 @@ export async function markReady(
   if (error) throw new Error(`Falha ao atualizar encomenda: ${error.message}`);
 }
 
+/** Fluxo "expressa": só gera (e grava) a prévia PINTADA — esse fluxo vende
+ *  somente a versão pintada, sem opção sem pintura. */
+export async function markReadyPainted(
+  id: string,
+  image: { mimeType: string; base64: string },
+): Promise<void> {
+  const db = getServiceClient();
+  const paintedPath = await uploadPreview(db, id, "painted", image);
+
+  const { error } = await db
+    .from("pet_miniature_requests")
+    .update({
+      status: "pronto" satisfies PetMiniatureStatus,
+      generated_image_painted_path: paintedPath,
+      ai_error: null,
+    })
+    .eq("id", id);
+  if (error) throw new Error(`Falha ao atualizar encomenda: ${error.message}`);
+}
+
 /** Grava a variante escolhida pelo cliente na aprovação (define o preço/produto). */
 export async function setSelectedVariant(id: string, variant: PetMiniatureVariant): Promise<void> {
   const db = getServiceClient();

@@ -57,6 +57,12 @@ function miniatureStandaloneLabel(req: PetMiniatureRequest): string {
   return "Prévia pronta — aprove pra pagar";
 }
 
+export type PendingPhotosOrder = {
+  orderCode: string;
+  href: string;
+  missingCount: number;
+};
+
 /** Lista unificada de pedidos (loja + miniatura de pet) de um e-mail, mais
  *  recentes primeiro. Miniatura já paga aparece como pedido da loja. */
 export async function getCustomerDashboard(email: string): Promise<DashboardItem[]> {
@@ -116,4 +122,34 @@ export async function getCustomerDashboard(email: string): Promise<DashboardItem
   return items.sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
+}
+
+/** Pedidos do fluxo "expressa" (paga antes, fotos depois) que já foram pagos
+ *  mas ainda têm pet(s) sem foto enviada. Usado pra destacar isso em "minha
+ *  conta" — só deve aparecer se houver algum pendente. */
+export async function getPendingPhotosOrders(email: string): Promise<PendingPhotosOrder[]> {
+  const orders = await getOrdersByEmail(email);
+  const requests = await getPetMiniatureRequestsByEmail(email);
+
+  const petsByOrderId = new Map<string, PetMiniatureRequest[]>();
+  for (const r of requests) {
+    if (!r.order_id) continue;
+    const list = petsByOrderId.get(r.order_id) ?? [];
+    list.push(r);
+    petsByOrderId.set(r.order_id, list);
+  }
+
+  const pending: PendingPhotosOrder[] = [];
+  for (const o of orders) {
+    const pets = petsByOrderId.get(o.order.id) ?? [];
+    const missingCount = pets.filter((p) => p.photo_paths.length === 0).length;
+    if (missingCount === 0) continue;
+    pending.push({
+      orderCode: o.order.order_code,
+      href: `/miniatura-pet/expressa/fotos/${o.order.order_code}`,
+      missingCount,
+    });
+  }
+
+  return pending;
 }
