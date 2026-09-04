@@ -6,6 +6,8 @@ import { getCustomerDashboard, getPendingPhotosOrders } from "@/lib/account";
 import { logoutCustomer } from "@/app/actions/auth";
 import { STORE_ENABLED } from "@/lib/features";
 import ContaOrders from "@/components/store/ContaOrders";
+import ContaTracker from "@/components/store/ContaTracker";
+import TrackedLink from "@/components/TrackedLink";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,7 @@ export default async function ContaPage() {
 
   return (
     <section className="mx-auto max-w-3xl px-6 py-12 sm:px-10 md:py-16">
+      <ContaTracker pedidos={items.length} fotosPendentes={pendingPhotosOrders.length} />
       <div className="mb-8 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-extrabold text-charcoal sm:text-3xl">
@@ -59,12 +62,14 @@ export default async function ContaPage() {
                     ? "1 pet sem foto"
                     : `${o.missingCount} pets sem foto`}
                 </span>
-                <Link
+                <TrackedLink
                   href={o.href}
+                  event="conta_fotos_pendentes_click"
+                  eventProps={{ pedido: o.orderCode }}
                   className="sticker-shadow rounded-full border-[3px] border-charcoal bg-teal px-4 py-2 font-heading text-[12px] font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none"
                 >
                   Enviar as fotos
-                </Link>
+                </TrackedLink>
               </li>
             ))}
           </ul>

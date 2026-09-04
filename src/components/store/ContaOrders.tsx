@@ -6,7 +6,7 @@ import Image from "next/image";
 import type { DashboardItem } from "@/lib/account";
 import OrderTimelineVertical from "@/components/store/OrderTimelineVertical";
 
-type TabKey = "order" | "approval";
+type TabKey = "order" | "delivered" | "approval";
 
 function OrderCard({ item }: { item: DashboardItem }) {
   return (
@@ -63,13 +63,15 @@ function OrderCard({ item }: { item: DashboardItem }) {
 
 export default function ContaOrders({ items }: { items: DashboardItem[] }) {
   const approval = items.filter((i) => i.stage === "approval");
-  const orders = items.filter((i) => i.stage === "order");
+  const orders = items.filter((i) => i.stage === "order" && !i.isDelivered);
+  const delivered = items.filter((i) => i.stage === "order" && i.isDelivered);
 
   const [tab, setTab] = useState<TabKey>("order");
-  const visible = tab === "order" ? orders : approval;
+  const visible = tab === "order" ? orders : tab === "delivered" ? delivered : approval;
 
   const tabs: { key: TabKey; label: string; count: number }[] = [
     { key: "order", label: "Pagamento em diante", count: orders.length },
+    { key: "delivered", label: "Entregues", count: delivered.length },
     { key: "approval", label: "Em aprovação", count: approval.length },
   ];
 
@@ -94,9 +96,9 @@ export default function ContaOrders({ items }: { items: DashboardItem[] }) {
 
       {visible.length === 0 ? (
         <div className="rounded-2xl border-[3px] border-charcoal bg-offwhite-2 p-6 text-center font-sans text-sm text-charcoal/70">
-          {tab === "order"
-            ? "Nenhum pedido do pagamento em diante ainda."
-            : "Nenhuma prévia em aprovação no momento."}
+          {tab === "order" && "Nenhum pedido do pagamento em diante ainda."}
+          {tab === "delivered" && "Nenhum pedido entregue ainda."}
+          {tab === "approval" && "Nenhuma prévia em aprovação no momento."}
         </div>
       ) : (
         <ul className="flex flex-col gap-5">

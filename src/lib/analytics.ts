@@ -19,7 +19,10 @@ export type FunnelEvent =
   | "checkout_iniciado"
   | "express_fotos_enviadas"
   | "express_previa_pronta"
-  | "pedido_pago";
+  | "pedido_pago"
+  | "login_link_solicitado"
+  | "conta_visualizada"
+  | "conta_fotos_pendentes_click";
 
 type Props = Record<string, string | number | boolean>;
 
@@ -40,6 +43,9 @@ const POSTHOG_EVENT_MAP: Record<FunnelEvent, string> = {
   express_fotos_enviadas: "express_photos_uploaded",
   express_previa_pronta: "express_preview_ready",
   pedido_pago: "payment_completed",
+  login_link_solicitado: "login_link_requested",
+  conta_visualizada: "account_viewed",
+  conta_fotos_pendentes_click: "account_pending_photos_clicked",
 };
 
 /** Client-side. Best-effort: nunca lança. */

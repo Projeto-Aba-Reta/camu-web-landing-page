@@ -23,16 +23,23 @@ export async function createMagicToken(email: string): Promise<string> {
   return raw;
 }
 
+export type ConsumedMagicToken = {
+  email: string;
+  /** Segundos entre o link ser gerado e o clique — sinal de quão rápido/impaciente
+   *  o cliente foi até abrir o e-mail e clicar. */
+  secondsSinceCreated: number;
+};
+
 /** Consome o token: rejeita se não existe, já foi usado ou expirou. Retorna o
- *  e-mail associado ou null. */
-export async function consumeMagicToken(raw: string): Promise<string | null> {
+ *  e-mail associado (+ tempo até o clique) ou null. */
+export async function consumeMagicToken(raw: string): Promise<ConsumedMagicToken | null> {
   if (!raw) return null;
   const db = getServiceClient();
   const tokenHash = hashToken(raw);
 
   const { data, error } = await db
     .from("customer_magic_tokens")
-    .select("id, email, expires_at, consumed_at")
+    .select("id, email, expires_at, consumed_at, created_at")
     .eq("token_hash", tokenHash)
     .maybeSingle();
   if (error || !data) return null;
@@ -46,5 +53,9 @@ export async function consumeMagicToken(raw: string): Promise<string | null> {
     .is("consumed_at", null);
   if (updErr) return null;
 
-  return data.email as string;
+  const secondsSinceCreated = Math.max(
+    0,
+    Math.round((Date.now() - new Date(data.created_at as string).getTime()) / 1000),
+  );
+  return { email: data.email as string, secondsSinceCreated };
 }

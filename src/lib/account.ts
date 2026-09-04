@@ -19,6 +19,8 @@ export type DashboardItem = {
   /** Datas por passo da timeline (quando timelineIndex != null). */
   stepDates: (string | null)[];
   previewImageUrl: string | null;
+  /** true quando o status logístico já é "delivered". */
+  isDelivered: boolean;
 };
 
 function shortDate(iso: string): string {
@@ -99,6 +101,7 @@ export async function getCustomerDashboard(email: string): Promise<DashboardItem
       timelineIndex: idx,
       stepDates: stepDatesFor(o, idx),
       previewImageUrl: firstPet ? miniaturePreview(firstPet) : null,
+      isDelivered: o.order.status === "delivered",
     });
   }
 
@@ -116,6 +119,7 @@ export async function getCustomerDashboard(email: string): Promise<DashboardItem
       timelineIndex: null,
       stepDates: [],
       previewImageUrl: miniaturePreview(req),
+      isDelivered: false,
     });
   }
 
