@@ -65,9 +65,6 @@ export default function Hero() {
           {/* wrapper do tamanho exato do card para o badge não desgrudar da imagem */}
           <div className="relative">
             <PetBeforeAfterCarousel examples={petBeforeAfterExamples} variant="hero" />
-            <span className="absolute -bottom-3.5 -left-3.5 -rotate-6 whitespace-nowrap rounded-full border-[3px] border-charcoal bg-offwhite px-3 py-2 font-heading text-xs font-bold text-charcoal sm:px-4 sm:py-2.5 sm:text-[13px]">
-              você aprova antes de pagar
-            </span>
           </div>
         </div>
       </div>
