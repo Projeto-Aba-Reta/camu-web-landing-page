@@ -20,13 +20,12 @@ export default function CheckoutForm({ initialError }: { initialError?: string }
   const [uf, setUf] = useState("");
 
   const freteIncluso = isFreteInclusoUF(uf);
+  const shippingFree = !FRETE_ENABLED && (freteIncluso || !uf.trim());
   const shippingLabel = FRETE_ENABLED
     ? formatBRL(SHIPPING_CENTS)
-    : freteIncluso
-      ? "Grátis"
-      : uf.trim()
-        ? "combinado à parte pelo WhatsApp"
-        : "grátis p/ Sul e Sudeste";
+    : shippingFree
+      ? "Frete grátis"
+      : "combinado à parte pelo WhatsApp";
 
   if (ready && items.length === 0 && !submitting) {
     return (
@@ -147,7 +146,7 @@ export default function CheckoutForm({ initialError }: { initialError?: string }
           </div>
           <div className="mb-3.5 flex justify-between font-sans text-sm font-medium text-charcoal">
             <span>Frete</span>
-            <span>{shippingLabel}</span>
+            <span className={shippingFree ? "font-bold text-teal" : undefined}>{shippingLabel}</span>
           </div>
           <div className="mb-3.5 h-0.5 bg-charcoal/15" />
           <div className="mb-6 flex justify-between font-heading text-lg font-extrabold text-charcoal">
