@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import posthog from "posthog-js";
 import { useEffect } from "react";
 
 export default function StoreError({
@@ -12,6 +13,7 @@ export default function StoreError({
 }) {
   useEffect(() => {
     console.error(error);
+    posthog.captureException(error);
   }, [error]);
 
   return (
@@ -32,10 +34,10 @@ export default function StoreError({
             Tentar de novo
           </button>
           <Link
-            href="/"
+            href="/miniatura-pet"
             className="rounded-full border-[3px] border-charcoal bg-transparent px-6 py-3 font-heading font-bold text-charcoal transition-colors hover:bg-charcoal/5"
           >
-            Voltar ao início
+            Voltar para a miniatura do pet
           </Link>
         </div>
       </div>
