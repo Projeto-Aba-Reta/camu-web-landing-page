@@ -92,6 +92,15 @@ export default function PetMiniatureCart() {
   return (
     <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr]">
       <div className="flex flex-col gap-7">
+        <section>
+          <h2 className="mb-2 font-heading text-xl font-bold text-charcoal">Endereço de entrega</h2>
+          <p className="mb-4 font-sans text-sm text-charcoal/60">
+            Digite o CEP: buscamos o endereço nos Correios e você confere o resto. Preencha o
+            número — nenhum campo pode ficar vazio.
+          </p>
+          <AddressFields value={address} onChange={setAddress} disabled={submitting} />
+        </section>
+
         <section className="flex flex-col gap-3">
           {items.map((line) => {
             const p = netByRequest.get(line.requestId);
@@ -154,15 +163,6 @@ export default function PetMiniatureCart() {
           >
             + Adicionar outro pet
           </Link>
-        </section>
-
-        <section>
-          <h2 className="mb-2 font-heading text-xl font-bold text-charcoal">Endereço de entrega</h2>
-          <p className="mb-4 font-sans text-sm text-charcoal/60">
-            Digite o CEP: buscamos o endereço nos Correios e você confere o resto. Preencha o
-            número — nenhum campo pode ficar vazio.
-          </p>
-          <AddressFields value={address} onChange={setAddress} disabled={submitting} />
         </section>
       </div>
 
