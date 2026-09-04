@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       freteCents: quote.cents,
       service: quote.service,
       carrier: quote.carrier,
-      prazoDias: quote.deliveryDays,
+      prazoDias: quote.prazoDias,
     });
   } catch (err) {
     return Response.json({
