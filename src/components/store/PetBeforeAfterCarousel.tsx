@@ -13,8 +13,8 @@ type Props = {
 };
 
 const FRAME_CLASSES: Record<NonNullable<Props["variant"]>, string> = {
-  page: "mx-auto w-full max-w-sm overflow-hidden rounded-[20px] border-[3px] border-charcoal bg-offwhite-2 sm:max-w-md",
-  hero: "sticker-shadow-lg h-64 w-64 rotate-3 overflow-hidden rounded-[32px] border-4 border-charcoal bg-offwhite-2 sm:h-72 sm:w-72 md:h-[340px] md:w-[340px]",
+  page: "mx-auto w-full max-w-md overflow-hidden rounded-[20px] border-[3px] border-charcoal bg-offwhite-2 sm:max-w-lg",
+  hero: "sticker-shadow-lg w-72 rotate-3 overflow-hidden rounded-[32px] border-4 border-charcoal bg-offwhite-2 sm:w-80 md:w-[380px]",
 };
 
 export default function PetBeforeAfterCarousel({ examples, variant = "page" }: Props) {
@@ -97,7 +97,7 @@ function PetBeforeAfterSlide({
   compact?: boolean;
 }) {
   return (
-    <div className="pet-transform-in relative flex aspect-square w-full">
+    <div className="pet-transform-in relative flex aspect-[4/3] w-full">
       <div className="relative h-full w-1/2 overflow-hidden">
         <Image
           src={example.beforeSrc}

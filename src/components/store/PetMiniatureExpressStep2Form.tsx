@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { createExpressPetMiniatureOrderAndPay } from "@/app/actions/pet-miniature";
 import { computePetCartPricing } from "@/lib/pet-miniature-cart-pricing";
 import {
@@ -12,7 +13,6 @@ import {
 } from "@/lib/money";
 import { cepDigits } from "@/lib/cep";
 import { useFreteQuote } from "@/lib/use-frete-quote";
-import { isValidEmail } from "@/lib/contact";
 import { trackFunnel } from "@/lib/analytics";
 import AddressFields, {
   addressLine,
@@ -21,16 +21,13 @@ import AddressFields, {
   type AddressFormValue,
 } from "./AddressFields";
 
-const inputClass =
-  "w-full rounded-xl border-2 border-charcoal bg-offwhite px-4 py-3.5 font-sans text-sm text-charcoal outline-none placeholder:text-charcoal/45 focus:border-teal-dark";
-
 type Props = {
+  quantity: number;
+  email: string;
   comPinturaCents: number | null;
 };
 
-export default function PetMiniatureExpressForm({ comPinturaCents }: Props) {
-  const [quantity, setQuantity] = useState(1);
-  const [email, setEmail] = useState("");
+export default function PetMiniatureExpressStep2Form({ quantity, email, comPinturaCents }: Props) {
   const [address, setAddress] = useState<AddressFormValue>(emptyAddress);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,10 +84,6 @@ export default function PetMiniatureExpressForm({ comPinturaCents }: Props) {
       setError("Preço indisponível no momento. Recarregue a página em instantes.");
       return;
     }
-    if (!isValidEmail(email)) {
-      setError("Digite um e-mail válido — é por ele que você manda as fotos.");
-      return;
-    }
     const addrError = validateAddress(address);
     if (addrError) {
       setError(addrError);
@@ -108,7 +101,7 @@ export default function PetMiniatureExpressForm({ comPinturaCents }: Props) {
     setSubmitting(true);
     const res = await createExpressPetMiniatureOrderAndPay({
       quantity,
-      email: email.trim(),
+      email,
       address: {
         cep: address.cep.trim(),
         line: addressLine(address),
@@ -125,56 +118,21 @@ export default function PetMiniatureExpressForm({ comPinturaCents }: Props) {
     setError(res.error);
   }
 
+  const editStep1Href = `/miniatura-pet/expressa?quantidade=${quantity}&email=${encodeURIComponent(email)}`;
+
   return (
     <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr]">
       <div className="flex flex-col gap-7">
-        <section>
-          <h2 className="mb-2 font-heading text-xl font-bold text-charcoal">Quantos pets?</h2>
-          <p className="mb-3 font-sans text-sm text-charcoal/60">
-            Miniatura pintada nas cores reais do seu pet
-            {unitPriceCents != null && <> — {formatBRL(unitPriceCents)} cada</>}. Cada par sai com
-            desconto. Você manda as fotos de cada pet depois do pagamento.
+        <section className="flex items-center justify-between rounded-xl border-2 border-dashed border-charcoal/30 bg-offwhite-2 px-4 py-3">
+          <p className="font-sans text-sm text-charcoal/70">
+            {quantity} {quantity === 1 ? "miniatura" : "miniaturas"} · {email}
           </p>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              aria-label="Menos um pet"
-              className="flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-charcoal bg-offwhite font-heading text-lg font-extrabold text-charcoal"
-            >
-              −
-            </button>
-            <span className="w-10 text-center font-heading text-lg font-extrabold text-charcoal">
-              {quantity}
-            </span>
-            <button
-              type="button"
-              onClick={() => setQuantity((q) => q + 1)}
-              aria-label="Mais um pet"
-              className="flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-charcoal bg-offwhite font-heading text-lg font-extrabold text-charcoal"
-            >
-              +
-            </button>
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <h2 className="font-heading text-xl font-bold text-charcoal">Seu e-mail</h2>
-          <div>
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              type="email"
-              autoComplete="email"
-              placeholder="E-mail"
-              className={inputClass}
-              disabled={submitting}
-            />
-            <p className="mt-1.5 font-sans text-[11px] text-charcoal/50">
-              É só o e-mail — a gente manda por ele o link pra enviar as fotos e acompanhar o pedido,
-              sem senha.
-            </p>
-          </div>
+          <Link
+            href={editStep1Href}
+            className="font-heading text-xs font-bold text-charcoal underline decoration-charcoal/30 decoration-2 underline-offset-4 hover:decoration-coral"
+          >
+            Editar
+          </Link>
         </section>
 
         <section>
@@ -193,7 +151,6 @@ export default function PetMiniatureExpressForm({ comPinturaCents }: Props) {
         {pricing.pairDiscountPct > 0 && (
           <div className="mb-4 rounded-xl border-2 border-dashed border-teal bg-teal/10 px-3 py-2 font-sans text-[12.5px] text-charcoal/75">
             Leve 2 e cada par sai com <strong>{pricing.pairDiscountPct}% OFF</strong>.
-            {quantity === 1 && " Adicione mais um pet pra ativar."}
           </div>
         )}
 

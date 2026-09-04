@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getPetMiniaturePricing } from "@/lib/store";
 import { petBeforeAfterExamples } from "@/lib/data";
-import PetMiniatureExpressForm from "@/components/store/PetMiniatureExpressForm";
+import PetMiniatureExpressStep1Form from "@/components/store/PetMiniatureExpressStep1Form";
 import PetBeforeAfterCarousel from "@/components/store/PetBeforeAfterCarousel";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +18,17 @@ const steps = [
   { n: "3", title: "A gente produz", desc: "Impressão 3D sob medida. Detalhes da pintura combinamos no WhatsApp." },
 ];
 
-export default async function MiniaturaPetExpressaPage() {
+type SearchParams = { quantidade?: string; email?: string };
+
+export default async function MiniaturaPetExpressaPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const { quantidade, email } = await searchParams;
   const pricing = await getPetMiniaturePricing();
+
+  const initialQuantity = Number(quantidade);
 
   return (
     <section className="mx-auto max-w-5xl px-6 py-12 sm:px-10 md:py-16">
@@ -28,7 +37,7 @@ export default async function MiniaturaPetExpressaPage() {
           className="mb-4 inline-block rounded-full border-2 border-charcoal bg-teal px-3.5 py-1.5 font-sans text-xs font-bold text-charcoal"
           style={{ transform: "rotate(-2deg)" }}
         >
-          pedido expresso
+          pedido expresso · passo 1 de 2
         </div>
         <h1 className="mb-3 font-heading text-3xl font-extrabold leading-tight text-charcoal sm:text-4xl">
           A miniatura do seu pet, sem enrolação.
@@ -56,7 +65,11 @@ export default async function MiniaturaPetExpressaPage() {
         ))}
       </ol>
 
-      <PetMiniatureExpressForm comPinturaCents={pricing.comPinturaCents} />
+      <PetMiniatureExpressStep1Form
+        comPinturaCents={pricing.comPinturaCents}
+        initialQuantity={Number.isFinite(initialQuantity) && initialQuantity > 0 ? initialQuantity : undefined}
+        initialEmail={email}
+      />
     </section>
   );
 }
