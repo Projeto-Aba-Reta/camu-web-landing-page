@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { approvePetMiniatureCartAndPay } from "@/app/actions/pet-miniature";
 import { usePetCart } from "@/lib/pet-miniature-cart";
 import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS, isFreteInclusoUF } from "@/lib/money";
+import { useFreteQuote } from "@/lib/use-frete-quote";
 import { trackFunnel } from "@/lib/analytics";
 import AddressFields, {
   addressLine,
@@ -28,6 +29,15 @@ export default function PetMiniatureCart() {
     () => new Map(pricing.lines.map((l) => [l.key, l])),
     [pricing.lines],
   );
+
+  // Fora do Sul/Sudeste o frete é cotado em tempo real (Melhor Envio) e somado
+  // ao total cobrado no pagamento.
+  const frete = useFreteQuote({
+    cep: address.cep,
+    uf: address.uf,
+    itemCount: items.length,
+    insuranceValueReais: pricing.itemsTotalCents / 100,
+  });
 
   if (!ready) {
     return <p className="font-sans text-sm text-charcoal/60">Carregando o carrinho…</p>;
@@ -54,19 +64,41 @@ export default function PetMiniatureCart() {
 
   const ufFilled = address.uf.trim().length > 0;
   const freteIncluso = isFreteInclusoUF(address.uf);
-  const shippingFree = !FRETE_ENABLED && (freteIncluso || !address.uf.trim());
+  const freteRequired = !FRETE_ENABLED && ufFilled && !freteIncluso;
+  const shippingFree = !FRETE_ENABLED && (freteIncluso || !ufFilled);
+  const shippingCents = FRETE_ENABLED
+    ? SHIPPING_CENTS
+    : frete.status === "done"
+      ? frete.freteCents
+      : 0;
+
   const shippingLabel = FRETE_ENABLED
     ? formatBRL(SHIPPING_CENTS)
     : shippingFree
       ? "Frete grátis"
-      : "combinado à parte pelo WhatsApp";
-  const totalCents = pricing.itemsTotalCents + (FRETE_ENABLED ? SHIPPING_CENTS : 0);
+      : frete.status === "loading"
+        ? "Calculando…"
+        : frete.status === "done"
+          ? `${formatBRL(frete.freteCents)} · ${frete.service} (${frete.prazoDias} dia(s) úteis)`
+          : frete.status === "error"
+            ? frete.error
+            : "—";
+
+  const totalCents = pricing.itemsTotalCents + shippingCents;
   const orderEmail = items.find((i) => i.customerEmail)?.customerEmail ?? null;
 
   async function onSubmit() {
     const addrError = validateAddress(address);
     if (addrError) {
       setError(addrError);
+      return;
+    }
+    if (freteRequired && frete.status !== "done") {
+      setError(
+        frete.status === "error"
+          ? frete.error
+          : "Aguarde o cálculo do frete para o seu CEP antes de continuar.",
+      );
       return;
     }
     setError(null);
@@ -215,7 +247,7 @@ export default function PetMiniatureCart() {
         <button
           type="button"
           onClick={onSubmit}
-          disabled={submitting}
+          disabled={submitting || (freteRequired && frete.status === "loading")}
           className="sticker-shadow w-full rounded-full border-[3px] border-charcoal bg-coral py-4 font-heading font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? "Redirecionando…" : "Ir para o pagamento →"}

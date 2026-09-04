@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS, isFreteInclusoUF } from "@/lib/money";
+import { useFreteQuote } from "@/lib/use-frete-quote";
 import { STORE_ENABLED } from "@/lib/features";
 import { trackFunnel } from "@/lib/analytics";
 import { createCheckout } from "@/app/actions/orders";
@@ -18,14 +19,33 @@ export default function CheckoutForm({ initialError }: { initialError?: string }
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [submitting, setSubmitting] = useState(false);
   const [uf, setUf] = useState("");
+  const [cep, setCep] = useState("");
 
   const freteIncluso = isFreteInclusoUF(uf);
+  const frete = useFreteQuote({
+    cep,
+    uf,
+    itemCount: count,
+    insuranceValueReais: subtotalCents / 100,
+  });
+  const freteRequired = !FRETE_ENABLED && uf.trim().length === 2 && !freteIncluso;
   const shippingFree = !FRETE_ENABLED && (freteIncluso || !uf.trim());
+  const shippingCents = FRETE_ENABLED
+    ? SHIPPING_CENTS
+    : frete.status === "done"
+      ? frete.freteCents
+      : 0;
   const shippingLabel = FRETE_ENABLED
     ? formatBRL(SHIPPING_CENTS)
     : shippingFree
       ? "Frete grátis"
-      : "combinado à parte pelo WhatsApp";
+      : frete.status === "loading"
+        ? "Calculando…"
+        : frete.status === "done"
+          ? `${formatBRL(frete.freteCents)} · ${frete.service} (${frete.prazoDias} dia(s) úteis)`
+          : frete.status === "error"
+            ? frete.error
+            : "—";
 
   if (ready && items.length === 0 && !submitting) {
     return (
@@ -42,9 +62,17 @@ export default function CheckoutForm({ initialError }: { initialError?: string }
     );
   }
 
-  const total = subtotalCents + SHIPPING_CENTS;
+  const total = subtotalCents + shippingCents;
 
   async function onSubmit(formData: FormData) {
+    if (freteRequired && frete.status !== "done") {
+      setError(
+        frete.status === "error"
+          ? frete.error
+          : "Aguarde o cálculo do frete para o seu CEP antes de continuar.",
+      );
+      return;
+    }
     setError(null);
     setSubmitting(true);
     const res = await createCheckout({
@@ -106,7 +134,13 @@ export default function CheckoutForm({ initialError }: { initialError?: string }
           <section>
             <h2 className="mb-4 font-heading text-xl font-bold text-charcoal">Endereço de entrega</h2>
             <div className="grid gap-3.5 sm:grid-cols-2">
-              <input name="cep" placeholder="CEP" className={inputClass} />
+              <input
+                name="cep"
+                placeholder="CEP"
+                value={cep}
+                onChange={(e) => setCep(e.target.value)}
+                className={inputClass}
+              />
               <input name="city" placeholder="Cidade" className={inputClass} />
               <input
                 name="uf"
@@ -155,7 +189,7 @@ export default function CheckoutForm({ initialError }: { initialError?: string }
           </div>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || (freteRequired && frete.status === "loading")}
             className="sticker-shadow w-full rounded-full border-[3px] border-charcoal bg-coral py-4 font-heading font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? "Redirecionando…" : "Finalizar pedido"}

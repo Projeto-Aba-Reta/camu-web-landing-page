@@ -178,7 +178,7 @@ export default function AddressFields({ value, onChange, disabled }: Props) {
         <p className="mt-3 font-sans text-sm text-charcoal/60">
           {isFreteInclusoUF(value.uf)
             ? "Frete incluso — seu endereço é no Sul ou Sudeste. Nada a mais no total."
-            : "Seu endereço está fora do Sul e Sudeste — o frete é combinado à parte pelo WhatsApp."}
+            : "Seu endereço está fora do Sul e Sudeste — o frete é calculado pelo CEP e somado ao total."}
         </p>
       )}
     </div>

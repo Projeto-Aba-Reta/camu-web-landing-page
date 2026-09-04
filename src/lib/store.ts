@@ -3,7 +3,8 @@ import { track } from "@vercel/analytics/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getServiceClient } from "./supabase/server";
 import { activeGatewayId, getPaymentGateway } from "./payments";
-import { SHIPPING_CENTS } from "./money";
+import { SHIPPING_CENTS, FRETE_ENABLED, isFreteInclusoUF } from "./money";
+import { quoteFrete } from "./shipping/melhor-envio";
 import { notifySaleChannels } from "./notify";
 import { getPetMiniatureRequestsByOrderId, publicMediaUrl } from "./pet-miniature";
 import type { Order, OrderItem, OrderStatus, Product } from "./types";
@@ -169,6 +170,30 @@ export type OrderWithItems = {
 };
 
 /**
+ * Frete somado ao pedido, calculado no servidor:
+ *  - `NEXT_PUBLIC_FRETE_ENABLED=true` → frete fixo (`SHIPPING_CENTS`);
+ *  - entrega no Sul/Sudeste → frete incluso (0);
+ *  - entrega fora do Sul/Sudeste → cotação em tempo real via Melhor Envio
+ *    (opção mais barata), que entra no total cobrado pelo gateway.
+ */
+async function resolveShippingCents(input: {
+  uf: string;
+  cep: string;
+  itemCount: number;
+  subtotalCents: number;
+}): Promise<number> {
+  if (FRETE_ENABLED) return SHIPPING_CENTS;
+  if (isFreteInclusoUF(input.uf)) return 0;
+
+  const quote = await quoteFrete({
+    toCep: input.cep,
+    itemCount: input.itemCount,
+    insuranceValueReais: input.subtotalCents / 100,
+  });
+  return quote.cents;
+}
+
+/**
  * Cria um pedido a partir dos itens do carrinho. Os PREÇOS são sempre
  * recalculados a partir do canal 'loja_propria' — o que o client mandou é ignorado.
  */
@@ -228,7 +253,12 @@ export async function createOrder(input: {
   });
 
   const subtotal = lineItems.reduce((s, it) => s + it.unit_price_cents * it.qty, 0);
-  const shipping = SHIPPING_CENTS;
+  const shipping = await resolveShippingCents({
+    uf: input.customer.uf,
+    cep: input.customer.cep,
+    itemCount: lineItems.reduce((s, it) => s + it.qty, 0),
+    subtotalCents: subtotal,
+  });
   const discount = Math.min(Math.max(0, Math.floor(input.discountCents ?? 0)), subtotal);
   const total = subtotal + shipping - discount;
 
