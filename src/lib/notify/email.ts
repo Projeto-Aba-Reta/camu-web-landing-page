@@ -1,7 +1,7 @@
 import "server-only";
 import { Resend } from "resend";
 import { formatBRL } from "@/lib/money";
-import { fullAddress, paymentMethodLabel, variantLabel } from "./format";
+import { adminOrderUrl, fullAddress, paymentMethodLabel, variantLabel } from "./format";
 import type { SaleEvent, SaleNotificationChannel } from "./types";
 
 function subject(event: SaleEvent): string {
@@ -51,6 +51,11 @@ function html(event: SaleEvent): string {
     ? `<p><img src="${event.previewImageUrl}" alt="Prévia da miniatura" style="max-width:280px;border-radius:12px" /></p>`
     : "";
 
+  const adminUrl = adminOrderUrl(event.orderCode);
+  const adminLinkHtml = adminUrl
+    ? `<p style="margin-top:20px"><a href="${adminUrl}">Abrir no admin</a></p>`
+    : "";
+
   return `<div style="font-family:sans-serif;color:#1b1f1e;max-width:560px">
     <h2>Nova venda na Camu</h2>
     <table style="border-collapse:collapse">${dados.join("")}</table>
@@ -63,6 +68,7 @@ function html(event: SaleEvent): string {
       ${row("Total", formatBRL(event.totalCents))}
     </table>
     ${previewHtml}
+    ${adminLinkHtml}
   </div>`;
 }
 

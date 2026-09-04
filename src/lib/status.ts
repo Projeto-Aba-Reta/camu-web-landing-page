@@ -1,5 +1,13 @@
 import type { OrderStatus } from "./types";
 
+/**
+ * Fonte única do contrato de status/timeline consumido pela spec
+ * `acompanhamento-de-pedido` (openspec/changes/deep-link-admin-no-pedido). O
+ * admin (camu-web-admin) escreve `orders.status` seguindo este vocabulário;
+ * `timelineIndex` cai no passo 0 para qualquer status fora dele em vez de
+ * quebrar a página de acompanhamento.
+ */
+
 /** Passos da timeline de acompanhamento (tela 6). */
 export const ORDER_TIMELINE = [
   { key: "received", label: "Recebido" },

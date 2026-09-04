@@ -21,6 +21,11 @@ function shortDate(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
 
+function truncateNote(note: string | null): string | null {
+  if (!note) return null;
+  return note.length > 140 ? `${note.slice(0, 140).trimEnd()}…` : note;
+}
+
 export default async function AcompanharPage({ params }: { params: Promise<Params> }) {
   const { code } = await params;
   const data = await getOrderByCode(code);
@@ -34,14 +39,19 @@ export default async function AcompanharPage({ params }: { params: Promise<Param
   const petPhotosPending =
     petRequests.length > 0 && petRequests.some((r) => r.photo_paths.length === 0);
 
-  // Datas por passo: 0 = criação do pedido; passos seguintes seguem os eventos.
-  const laterEventDates = events
-    .filter((e) => e.status !== "pending")
-    .map((e) => shortDate(e.created_at));
+  // Datas e notas por passo: 0 = criação do pedido; passos seguintes seguem os eventos.
+  const laterEvents = events.filter((e) => e.status !== "pending");
+  const laterEventDates = laterEvents.map((e) => shortDate(e.created_at));
+  const laterEventNotes = laterEvents.map((e) => truncateNote(e.note));
   const stepDates: (string | null)[] = [0, 1, 2, 3, 4].map((i) => {
     if (i > currentIndex) return null;
     if (i === 0) return shortDate(order.created_at);
     return laterEventDates[i - 1] ?? shortDate(order.updated_at);
+  });
+  const stepNotes: (string | null)[] = [0, 1, 2, 3, 4].map((i) => {
+    if (i > currentIndex) return null;
+    if (i === 0) return null;
+    return laterEventNotes[i - 1] ?? null;
   });
 
   const itemsSummary = items
@@ -91,10 +101,14 @@ export default async function AcompanharPage({ params }: { params: Promise<Param
       ) : (
         <>
           <div className="sm:hidden">
-            <OrderTimelineVertical currentIndex={currentIndex} stepDates={stepDates} />
+            <OrderTimelineVertical
+              currentIndex={currentIndex}
+              stepDates={stepDates}
+              stepNotes={stepNotes}
+            />
           </div>
           <div className="hidden sm:block">
-            <OrderTimeline currentIndex={currentIndex} stepDates={stepDates} />
+            <OrderTimeline currentIndex={currentIndex} stepDates={stepDates} stepNotes={stepNotes} />
           </div>
         </>
       )}

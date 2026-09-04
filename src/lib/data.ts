@@ -26,6 +26,29 @@ export const petMiniatureSteps = [
   { n: "4", title: "Tem mais pets?", desc: "Adicione várias miniaturas no mesmo pedido — cada par sai com desconto." },
 ] as const;
 
+/**
+ * Exemplos reais de "antes e depois" (foto do pet → miniatura impressa),
+ * usados no carrossel de /miniatura-pet/expressa. Pra adicionar um novo par,
+ * suba as duas imagens em public/images/ e acrescente um item aqui.
+ */
+export type PetBeforeAfterExample = {
+  petName: string;
+  beforeSrc: string;
+  beforeAlt: string;
+  afterSrc: string;
+  afterAlt: string;
+};
+
+export const petBeforeAfterExamples: PetBeforeAfterExample[] = [
+  {
+    petName: "Tofu",
+    beforeSrc: "/images/Tofu_Foto.png",
+    beforeAlt: "Foto do pet Tofu enviada pelo cliente",
+    afterSrc: "/images/Tofu_Peca.png",
+    afterAlt: "Miniatura impressa em 3D do pet Tofu",
+  },
+];
+
 export type Product = {
   name: string;
   market: string;

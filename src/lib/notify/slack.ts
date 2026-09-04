@@ -1,6 +1,6 @@
 import "server-only";
 import { formatBRL } from "@/lib/money";
-import { fullAddress, paymentMethodLabel, variantLabel } from "./format";
+import { adminOrderUrl, fullAddress, paymentMethodLabel, variantLabel } from "./format";
 import type { SaleEvent, SaleNotificationChannel } from "./types";
 
 function text(event: SaleEvent): string {
@@ -44,6 +44,11 @@ function text(event: SaleEvent): string {
       `*Variante:* ${pm.selectedVariant === "Variadas" ? "Variadas" : variantLabel(pm.selectedVariant)}`,
       `*Fotos enviadas:* ${pm.photoCount}`,
     );
+  }
+
+  const adminUrl = adminOrderUrl(event.orderCode);
+  if (adminUrl) {
+    lines.push("", `Abrir no admin: ${adminUrl}`);
   }
 
   return lines.join("\n");

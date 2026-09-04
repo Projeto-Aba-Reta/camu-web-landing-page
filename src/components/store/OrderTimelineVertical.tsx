@@ -8,9 +8,11 @@ import { ORDER_TIMELINE } from "@/lib/status";
 export default function OrderTimelineVertical({
   currentIndex,
   stepDates = [],
+  stepNotes,
 }: {
   currentIndex: number;
   stepDates?: (string | null)[];
+  stepNotes?: (string | null)[];
 }) {
   if (currentIndex === -1) {
     return (
@@ -54,6 +56,9 @@ export default function OrderTimelineVertical({
               <div className="font-sans text-[11px] text-charcoal/50">
                 {stepDates[i] ?? (current ? "agora" : "—")}
               </div>
+              {stepNotes?.[i] && (
+                <div className="mt-0.5 font-sans text-[11px] text-charcoal/65">{stepNotes[i]}</div>
+              )}
             </div>
           </li>
         );

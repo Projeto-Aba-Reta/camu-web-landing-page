@@ -54,3 +54,37 @@ body {
     #dad5c8 20px
   );
 }
+
+/* Carrossel "antes e depois" da miniatura de pet — pulso de brilho no instante da transformação */
+@keyframes pet-transform-sparkle {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) rotate(-8deg);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.15) rotate(4deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4) rotate(10deg);
+  }
+}
+
+.pet-transform-sparkle {
+  opacity: 0;
+  animation: pet-transform-sparkle 700ms ease-out forwards;
+}
+
+@keyframes pet-transform-sweep {
+  0% {
+    transform: translateX(-120%) skewX(-12deg);
+  }
+  100% {
+    transform: translateX(220%) skewX(-12deg);
+  }
+}
+
+.pet-transform-sweep {
+  animation: pet-transform-sweep 700ms ease-in-out forwards;
+}

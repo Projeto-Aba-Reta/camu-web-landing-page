@@ -22,8 +22,6 @@ import AddressFields, {
   type AddressFormValue,
 } from "./AddressFields";
 
-const MAX_PETS = 6;
-
 const inputClass =
   "w-full rounded-xl border-2 border-charcoal bg-offwhite px-4 py-3.5 font-sans text-sm text-charcoal outline-none placeholder:text-charcoal/45 focus:border-teal-dark";
 
@@ -180,7 +178,7 @@ export default function PetMiniatureExpressForm({ semPinturaCents, comPinturaCen
             </span>
             <button
               type="button"
-              onClick={() => setQuantity((q) => Math.min(MAX_PETS, q + 1))}
+              onClick={() => setQuantity((q) => q + 1)}
               aria-label="Mais um pet"
               className="flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-charcoal bg-offwhite font-heading text-lg font-extrabold text-charcoal"
             >

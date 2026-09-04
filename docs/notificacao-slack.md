@@ -141,6 +141,17 @@ aprovação).
 Campos ausentes aparecem como `—` (ex.: encomenda de pet sem endereço de
 entrega, ou pagamento cujo método o gateway não informou).
 
+### Link direto pro pedido no admin
+
+Com `ADMIN_BASE_URL` configurada, a mensagem (e-mail e Slack) ganha uma linha
+"Abrir no admin" com o link `${ADMIN_BASE_URL}/vendas/pedidos/codigo/{order_code}`
+— leva direto ao pedido no `camu-web-admin`. Sem essa variável, a notificação
+sai normalmente, só sem o link (degradação graciosa, sem erro).
+
+O link é montado em `src/lib/notify/format.ts` (`adminOrderUrl`) e consumido
+por `slack.ts` e `email.ts`. `ADMIN_BASE_URL` é a URL pública do
+camu-web-admin, **sem barra final** — ver `.env.example`.
+
 ---
 
 ## Troubleshooting

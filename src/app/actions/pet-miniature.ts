@@ -332,8 +332,6 @@ export async function approvePetMiniatureCartAndPay(
 // (/miniatura-pet/expressa).
 // ---------------------------------------------------------------------------
 
-const MAX_EXPRESS_PETS = 6;
-
 export type ExpressPetMiniatureInput = {
   variant: PetMiniatureVariant;
   quantity: number;
@@ -353,8 +351,8 @@ export async function createExpressPetMiniatureOrderAndPay(
   }
 
   const quantity = Math.floor(Number(input?.quantity));
-  if (!Number.isFinite(quantity) || quantity < 1 || quantity > MAX_EXPRESS_PETS) {
-    return { ok: false, error: `Informe de 1 a ${MAX_EXPRESS_PETS} pets.` };
+  if (!Number.isFinite(quantity) || quantity < 1) {
+    return { ok: false, error: "Informe ao menos 1 pet." };
   }
 
   const email = String(input?.email ?? "").trim().toLowerCase();

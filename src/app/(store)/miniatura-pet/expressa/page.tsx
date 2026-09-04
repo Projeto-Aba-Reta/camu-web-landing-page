@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { getPetMiniaturePricing } from "@/lib/store";
+import { petBeforeAfterExamples } from "@/lib/data";
 import PetMiniatureExpressForm from "@/components/store/PetMiniatureExpressForm";
+import PetBeforeAfterCarousel from "@/components/store/PetBeforeAfterCarousel";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +37,8 @@ export default async function MiniaturaPetExpressaPage() {
           Paga agora e manda as fotos depois — só e-mail, sem cadastro, sem esperar prévia.
         </p>
       </div>
+
+      <PetBeforeAfterCarousel examples={petBeforeAfterExamples} />
 
       <ol className="mb-10 grid gap-3 sm:grid-cols-3">
         {steps.map((step) => (

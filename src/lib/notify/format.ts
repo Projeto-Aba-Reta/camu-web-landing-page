@@ -31,3 +31,10 @@ export function variantLabel(variant: string | null): string {
   };
   return map[variant] ?? variant;
 }
+
+/** Link direto pro pedido no camu-web-admin, ou `null` se `ADMIN_BASE_URL` não estiver configurada. */
+export function adminOrderUrl(orderCode: string): string | null {
+  const base = process.env.ADMIN_BASE_URL?.trim();
+  if (!base) return null;
+  return `${base.replace(/\/$/, "")}/vendas/pedidos/codigo/${orderCode}`;
+}
