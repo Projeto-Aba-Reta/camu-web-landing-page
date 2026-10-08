@@ -1,6 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    // /empresas aponta para uma URL externa configurada no env (lida no build/start).
+    const empresasUrl = process.env.EMPRESAS_REDIRECT_URL;
+    if (!empresasUrl) return [];
+    return [
+      {
+        source: "/empresas",
+        destination: empresasUrl,
+        permanent: false,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {
