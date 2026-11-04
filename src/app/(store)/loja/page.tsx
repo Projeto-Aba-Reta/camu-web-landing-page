@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProducts } from "@/lib/store";
-import { STORE_ENABLED } from "@/lib/features";
+import { getStoreItems } from "@/lib/storefront";
+import { STORE_ENABLED, STORE_V2 } from "@/lib/features";
 import CatalogClient from "@/components/store/CatalogClient";
+import StoreCatalog from "@/components/store/StoreCatalog";
 
 export const metadata: Metadata = {
   title: "Catálogo",
@@ -15,7 +17,8 @@ export const dynamic = "force-dynamic";
 export default async function LojaPage() {
   if (!STORE_ENABLED) notFound();
 
-  const products = await getProducts();
+  const items = STORE_V2 ? await getStoreItems() : null;
+  const products = items ? [] : await getProducts();
 
   return (
     <section className="mx-auto max-w-6xl px-6 py-12 sm:px-10 md:py-16">
@@ -23,7 +26,7 @@ export default async function LojaPage() {
       <p className="mb-8 font-sans text-charcoal/65">
         Peças prontas pra impressão — escolha, adicione ao carrinho e finalize aqui mesmo.
       </p>
-      <CatalogClient products={products} />
+      {items ? <StoreCatalog items={items} /> : <CatalogClient products={products} />}
     </section>
   );
 }

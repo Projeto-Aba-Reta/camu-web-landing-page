@@ -221,25 +221,73 @@ export async function createOrder(input: {
 
   const ids = [...new Set(cleaned.map((i) => i.productId))];
 
-  const [{ data: listings, error: lErr }, { data: products, error: pErr }] = await Promise.all([
-    db
-      .from("product_channel_listings")
-      .select("product_id, listed_price")
-      .eq("channel", SITE_CHANNEL)
-      .eq("is_active", true)
-      .in("product_id", ids),
-    db.from("products").select("id, name, status").in("id", ids),
-  ]);
-  if (lErr) throw new Error(`Falha ao validar preços: ${lErr.message}`);
-  if (pErr) throw new Error(`Falha ao validar itens: ${pErr.message}`);
-
-  const priceByProduct = new Map(
-    (listings ?? []).map((l) => [l.product_id as string, Number(l.listed_price)]),
+  // Catálogo V2 (view storefront_products_v) primeiro; ids que não estão nele
+  // seguem pelo caminho legado (products + listing loja_propria — é o que a
+  // miniatura de pet usa).
+  const { data: storeRows, error: sErr } = await db
+    .from("storefront_products_v")
+    .select("id, title, price_cents, variants")
+    .in("id", ids);
+  if (sErr) throw new Error(`Falha ao validar itens: ${sErr.message}`);
+  const storeById = new Map(
+    (storeRows ?? []).map((r) => [
+      r.id as string,
+      r as {
+        id: string;
+        title: string;
+        price_cents: number;
+        variants: { id: string; label: string; price_delta_cents: number }[];
+      },
+    ]),
   );
-  const prodById = new Map((products ?? []).map((p) => [p.id as string, p]));
+  const legacyIds = ids.filter((id) => !storeById.has(id));
 
-  const lineItems = cleaned.map((i) => {
-    const p = prodById.get(i.productId) as { name: string; status: string } | undefined;
+  const priceByProduct = new Map<string, number>();
+  const prodById = new Map<string, { name: string; status: string }>();
+  if (legacyIds.length > 0) {
+    const [{ data: listings, error: lErr }, { data: products, error: pErr }] = await Promise.all([
+      db
+        .from("product_channel_listings")
+        .select("product_id, listed_price")
+        .eq("channel", SITE_CHANNEL)
+        .eq("is_active", true)
+        .in("product_id", legacyIds),
+      db.from("products").select("id, name, status").in("id", legacyIds),
+    ]);
+    if (lErr) throw new Error(`Falha ao validar preços: ${lErr.message}`);
+    if (pErr) throw new Error(`Falha ao validar itens: ${pErr.message}`);
+    (listings ?? []).forEach((l) => priceByProduct.set(l.product_id as string, Number(l.listed_price)));
+    (products ?? []).forEach((p) => prodById.set(p.id as string, p as { name: string; status: string }));
+  }
+
+  type LineItem = {
+    product_id: string | null;
+    store_product_id?: string;
+    store_variant_id?: string | null;
+    product_name: string;
+    variant: string;
+    unit_price_cents: number;
+    qty: number;
+  };
+
+  const lineItems: LineItem[] = cleaned.map((i) => {
+    const sp = storeById.get(i.productId);
+    if (sp) {
+      const variants = sp.variants ?? [];
+      // Sem variantes cadastradas, só existe a versão padrão.
+      const chosen = variants.length === 0 ? null : variants.find((v) => v.label === i.variant);
+      if (variants.length > 0 && !chosen) throw new Error("Uma das variantes escolhidas não está mais disponível.");
+      return {
+        product_id: null,
+        store_product_id: sp.id,
+        store_variant_id: chosen?.id ?? null,
+        product_name: sp.title,
+        variant: chosen?.label ?? "Padrão",
+        unit_price_cents: sp.price_cents + (chosen?.price_delta_cents ?? 0),
+        qty: i.qty,
+      };
+    }
+    const p = prodById.get(i.productId);
     const priceReais = priceByProduct.get(i.productId);
     if (!p || p.status !== "ativo" || priceReais == null) {
       throw new Error("Um dos itens não está mais disponível na loja.");

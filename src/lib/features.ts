@@ -9,3 +9,12 @@
  *   e a encomenda personalizada continuam ativas.
  */
 export const STORE_ENABLED = process.env.NEXT_PUBLIC_STORE_ENABLED !== "false";
+
+/**
+ * Catálogo V2 (`NEXT_PUBLIC_STORE_V2`): `/loja` e `/loja/[slug]` leem os
+ * produtos da Vitrine do admin (view `storefront_products_v`).
+ * - Ligado (padrão): catálogo moderno com slug, variantes, selos e SEO.
+ * - Desligado (`=false`): volta ao catálogo legado (products + listing
+ *   `loja_propria`). A miniatura de pet não é afetada em nenhum dos modos.
+ */
+export const STORE_V2 = process.env.NEXT_PUBLIC_STORE_V2 !== "false";
