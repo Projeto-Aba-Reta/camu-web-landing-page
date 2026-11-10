@@ -182,3 +182,11 @@ create policy "pet_media_storage_delete" on storage.objects
     bucket_id = 'pet-media'
     and (public.is_socio_or_owner() or public.has_role('producao'))
   );
+
+-- =============================================================================
+-- Nome do pet (referência — migration real: camu-web-admin/supabase/migrations/
+-- 20261109120000_pet_miniature_pet_name.sql). Usado na plaquinha da prévia.
+-- =============================================================================
+
+alter table public.pet_miniature_requests
+  add column if not exists pet_name text;

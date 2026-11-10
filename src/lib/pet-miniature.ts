@@ -20,6 +20,19 @@ export function publicMediaUrl(storagePath: string): string {
 
 export type IncomingPhoto = { name: string; type: string; buffer: Buffer };
 
+export const MAX_PET_NAME = 20;
+
+/** Normaliza o nome do pet digitado (espaços colapsados). Devolve `null` se
+ *  vazio, grande demais ou com caracteres que não cabem numa plaquinha. */
+export function normalizePetName(raw: unknown): string | null {
+  const name = String(raw ?? "").replace(/\s+/g, " ").trim();
+  if (!name || name.length > MAX_PET_NAME) return null;
+  if (!/^[\p{L}\p{N}][\p{L}\p{N} '’.-]*$/u.test(name)) return null;
+  return name;
+}
+
+export const PET_NAME_ERROR = `Digite o nome do seu pet (até ${MAX_PET_NAME} letras) — ele vai na plaquinha da miniatura.`;
+
 export function validatePhotos(photos: IncomingPhoto[]): string | null {
   if (photos.length < MIN_PHOTOS || photos.length > MAX_PHOTOS) {
     return `Envie entre ${MIN_PHOTOS} e ${MAX_PHOTOS} fotos do seu pet.`;
@@ -46,6 +59,7 @@ function extFor(mimeType: string): string {
  *  só na aprovação. */
 export async function createPetMiniatureRequest(input: {
   name: string;
+  petName: string;
   phone: string;
   email: string;
   photos: IncomingPhoto[];
@@ -68,6 +82,7 @@ export async function createPetMiniatureRequest(input: {
     .insert({
       id,
       customer_name: input.name,
+      pet_name: input.petName,
       customer_phone: input.phone,
       customer_email: input.email.trim().toLowerCase(),
       photo_paths: photoPaths,
@@ -114,6 +129,7 @@ export async function createExpressPetMiniatureRequests(input: {
 export async function attachPhotosToRequest(
   requestId: string,
   photos: IncomingPhoto[],
+  petName: string,
 ): Promise<void> {
   const db = getServiceClient();
   const request = await getPetMiniatureRequest(requestId);
@@ -134,7 +150,7 @@ export async function attachPhotosToRequest(
 
   const { error } = await db
     .from("pet_miniature_requests")
-    .update({ photo_paths: paths })
+    .update({ photo_paths: paths, pet_name: petName })
     .eq("id", requestId);
   if (error) throw new Error(`Falha ao salvar fotos: ${error.message}`);
 

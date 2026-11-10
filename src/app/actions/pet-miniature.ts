@@ -14,6 +14,8 @@ import {
   getPetMiniatureRequest,
   getPetMiniatureRequestsByOrderId,
   linkOrder,
+  normalizePetName,
+  PET_NAME_ERROR,
   publicMediaUrl,
   setSelectedVariant,
   validatePhotos,
@@ -73,6 +75,9 @@ export async function submitPetMiniatureIntake(formData: FormData): Promise<PetM
     return { ok: false, error: "Digite um WhatsApp válido com DDD, ex.: +55 (11) 91258-1464." };
   }
 
+  const petName = normalizePetName(formData.get("petName"));
+  if (!petName) return { ok: false, error: PET_NAME_ERROR };
+
   const photos: IncomingPhoto[] = [];
   for (const file of files) {
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -83,7 +88,7 @@ export async function submitPetMiniatureIntake(formData: FormData): Promise<PetM
   if (validationError) return { ok: false, error: validationError };
 
   try {
-    const request = await createPetMiniatureRequest({ name, phone, email, photos });
+    const request = await createPetMiniatureRequest({ name, petName, phone, email, photos });
 
     after(() => runPetMiniatureGeneration(request.id));
 
@@ -447,6 +452,9 @@ export async function uploadExpressPetPhotos(
     return { ok: false, error: "As fotos deste pet já foram enviadas." };
   }
 
+  const petName = normalizePetName(formData.get("petName"));
+  if (!petName) return { ok: false, error: PET_NAME_ERROR };
+
   const files = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
   const photos: IncomingPhoto[] = [];
   for (const file of files) {
@@ -458,7 +466,7 @@ export async function uploadExpressPetPhotos(
   if (validationError) return { ok: false, error: validationError };
 
   try {
-    await attachPhotosToRequest(request.id, photos);
+    await attachPhotosToRequest(request.id, photos, petName);
     after(() => runExpressPetMiniatureGeneration(request.id));
     return { ok: true };
   } catch (err) {

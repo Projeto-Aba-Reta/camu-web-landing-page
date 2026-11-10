@@ -21,7 +21,7 @@ export async function runPetMiniatureGeneration(requestId: string): Promise<void
     if (!request) return;
 
     const photos = await downloadPhotosBase64(request);
-    const result = await generatePetMiniatureImages(photos);
+    const result = await generatePetMiniatureImages(photos, request.pet_name);
     await markReady(requestId, result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Falha desconhecida ao gerar a prévia.";
@@ -45,7 +45,7 @@ export async function runExpressPetMiniatureGeneration(requestId: string): Promi
     if (!request) return;
 
     const photos = await downloadPhotosBase64(request);
-    const result = await generatePetMiniaturePaintedImage(photos);
+    const result = await generatePetMiniaturePaintedImage(photos, request.pet_name);
     await markReadyPainted(requestId, result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Falha desconhecida ao gerar a prévia.";

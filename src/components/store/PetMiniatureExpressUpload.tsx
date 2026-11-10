@@ -74,6 +74,7 @@ function PetUploader({
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<File[]>([]);
+  const [petName, setPetName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -100,11 +101,16 @@ function PetUploader({
 
   async function onSubmit() {
     setError(null);
+    if (!petName.trim()) {
+      setError("Digite o nome do pet — ele vai na plaquinha da miniatura.");
+      return;
+    }
     if (photos.length < MIN_PHOTOS) {
       setError(`Envie pelo menos ${MIN_PHOTOS} fotos deste pet.`);
       return;
     }
     const formData = new FormData();
+    formData.append("petName", petName);
     photos.forEach((file) => formData.append("photos", file));
 
     setSubmitting(true);
@@ -137,6 +143,19 @@ function PetUploader({
         <PetExpressPreview orderCode={orderCode} pet={pet} />
       ) : (
         <>
+          <div className="mb-4">
+            <input
+              value={petName}
+              onChange={(e) => setPetName(e.target.value)}
+              maxLength={20}
+              autoComplete="off"
+              placeholder="Nome do pet"
+              className="w-full rounded-xl border-2 border-charcoal bg-offwhite px-4 py-3.5 font-sans text-sm text-charcoal outline-none placeholder:text-charcoal/45 focus:border-teal-dark"
+            />
+            <p className="mt-1.5 font-sans text-[11px] text-charcoal/50">
+              Vai escrito na plaquinha dourada da miniatura — confira a grafia.
+            </p>
+          </div>
           <div className="grid grid-cols-4 gap-2.5">
             {photos.map((file, i) => (
               <div
@@ -187,6 +206,12 @@ function PetUploader({
             disabled={submitting}
             className="sticker-shadow mt-4 flex w-full items-center justify-center gap-2.5 rounded-full border-[3px] border-charcoal bg-teal py-3.5 font-heading font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none disabled:opacity-60"
           >
+            {submitting && (
+              <span
+                className="h-4 w-4 animate-spin rounded-full border-[3px] border-charcoal/25 border-t-charcoal"
+                aria-hidden
+              />
+            )}
             {submitting ? "Enviando fotos…" : "Enviar fotos deste pet →"}
           </button>
         </>

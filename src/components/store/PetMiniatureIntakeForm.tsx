@@ -74,6 +74,11 @@ export default function PetMiniatureIntakeForm() {
       }
     }
 
+    if (!String(formData.get("petName") ?? "").trim()) {
+      setError("Digite o nome do seu pet — ele vai na plaquinha da miniatura.");
+      return;
+    }
+
     if (photos.length < MIN_PHOTOS) {
       setError(`Envie pelo menos ${MIN_PHOTOS} fotos do seu pet.`);
       return;
@@ -83,12 +88,13 @@ export default function PetMiniatureIntakeForm() {
 
     setSubmitting(true);
     const res = await submitPetMiniatureIntake(formData);
-    setSubmitting(false);
 
     if (res.ok) {
+      // Mantém o loading até a navegação concluir (não reabilita o botão).
       trackFunnel("intake_enviado");
       router.push(`/miniatura-pet/${res.requestId}`);
     } else {
+      setSubmitting(false);
       setError(res.error);
     }
   }
@@ -137,6 +143,20 @@ export default function PetMiniatureIntakeForm() {
           </div>
         </>
       )}
+
+      <div>
+        <input
+          name="petName"
+          required
+          maxLength={20}
+          autoComplete="off"
+          placeholder="Nome do seu pet"
+          className={inputClass}
+        />
+        <p className="mt-1.5 font-sans text-[11px] text-charcoal/50">
+          Vai escrito na plaquinha dourada da miniatura — confira a grafia.
+        </p>
+      </div>
 
       <div>
         <div className="mb-2.5 flex items-baseline justify-between">
