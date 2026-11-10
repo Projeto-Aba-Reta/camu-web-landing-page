@@ -6,7 +6,7 @@ import { activeGatewayId, getPaymentGateway } from "./payments";
 import { SHIPPING_CENTS, FRETE_ENABLED, isFreteInclusoUF } from "./money";
 import { quoteFrete } from "./shipping";
 import { notifySaleChannels } from "./notify";
-import { getPetMiniatureRequestsByOrderId, publicMediaUrl } from "./pet-miniature";
+import { getPetMiniatureRequestsByOrderId, publicMediaUrl, signedPhotoUrls } from "./pet-miniature";
 import type { Order, OrderItem, OrderStatus, Product } from "./types";
 
 const SITE_CHANNEL = "loja_propria";
@@ -519,6 +519,14 @@ async function notifySaleOfPaidOrder(order: Order): Promise<void> {
 
     const petVariants = new Set(petRequests.map((r) => r.selected_variant));
 
+    // Fotos originais (bucket privado) → links assinados. Best-effort.
+    let photoUrls: string[] = [];
+    try {
+      photoUrls = await signedPhotoUrls(petRequests.flatMap((r) => r.photo_paths ?? []));
+    } catch (err) {
+      console.error("[notifySaleOfPaidOrder:photos]", err);
+    }
+
     await notifySaleChannels({
       orderCode: order.order_code,
       kind: firstPet ? "pet_miniature" : "catalog",
@@ -556,6 +564,7 @@ async function notifySaleOfPaidOrder(order: Order): Promise<void> {
             requestCount: petRequests.length,
             selectedVariant: petVariants.size === 1 ? firstPet.selected_variant : "Variadas",
             photoCount: petRequests.reduce((s, r) => s + (r.photo_paths?.length ?? 0), 0),
+            photoUrls,
           }
         : null,
     });

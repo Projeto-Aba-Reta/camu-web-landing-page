@@ -44,6 +44,13 @@ function text(event: SaleEvent): string {
       `*Variante:* ${pm.selectedVariant === "Variadas" ? "Variadas" : variantLabel(pm.selectedVariant)}`,
       `*Fotos enviadas:* ${pm.photoCount}`,
     );
+    if (pm.photoUrls.length > 0) {
+      lines.push(
+        `*Fotos originais* (links válidos por 7 dias): ${pm.photoUrls
+          .map((url, i) => `<${url}|Foto ${i + 1}>`)
+          .join(" · ")}`,
+      );
+    }
   }
 
   const adminUrl = adminOrderUrl(event.orderCode);

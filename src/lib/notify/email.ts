@@ -51,6 +51,18 @@ function html(event: SaleEvent): string {
     ? `<p><img src="${event.previewImageUrl}" alt="Prévia da miniatura" style="max-width:280px;border-radius:12px" /></p>`
     : "";
 
+  const photoUrls = event.petMiniature?.photoUrls ?? [];
+  const photosHtml = photoUrls.length
+    ? `<h3 style="margin-top:24px">Fotos originais do cliente</h3>
+    <p style="color:#666;font-size:12px;margin:0 0 8px">Links temporários (válidos por 7 dias).</p>
+    <p>${photoUrls
+      .map(
+        (url, i) =>
+          `<a href="${url}" style="display:inline-block;margin:0 8px 8px 0"><img src="${url}" alt="Foto ${i + 1}" width="120" style="border-radius:8px;display:block" /><span style="font-size:12px">Foto ${i + 1}</span></a>`,
+      )
+      .join("")}</p>`
+    : "";
+
   const adminUrl = adminOrderUrl(event.orderCode);
   const adminLinkHtml = adminUrl
     ? `<p style="margin-top:20px"><a href="${adminUrl}">Abrir no admin</a></p>`
@@ -68,6 +80,7 @@ function html(event: SaleEvent): string {
       ${row("Total", formatBRL(event.totalCents))}
     </table>
     ${previewHtml}
+    ${photosHtml}
     ${adminLinkHtml}
   </div>`;
 }

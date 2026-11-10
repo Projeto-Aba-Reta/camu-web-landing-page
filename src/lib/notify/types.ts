@@ -47,6 +47,8 @@ export type SaleEvent = {
     selectedVariant: string | null;
     /** Total de fotos enviadas (soma de todas as encomendas). */
     photoCount: number;
+    /** Links temporários (7 dias) das fotos originais de todas as encomendas. */
+    photoUrls: string[];
   } | null;
 };
 

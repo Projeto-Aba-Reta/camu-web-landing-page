@@ -181,6 +181,21 @@ export async function getPetMiniatureRequest(id: string): Promise<PetMiniatureRe
   return (data as PetMiniatureRequest) ?? null;
 }
 
+/** URLs assinadas (temporárias) das fotos originais do bucket privado — usadas
+ *  nas notificações de venda. Falha em uma foto não derruba as demais. */
+export async function signedPhotoUrls(
+  paths: string[],
+  expiresInSeconds = 7 * 24 * 60 * 60,
+): Promise<string[]> {
+  if (paths.length === 0) return [];
+  const db = getServiceClient();
+  const { data, error } = await db.storage
+    .from(PHOTOS_BUCKET)
+    .createSignedUrls(paths, expiresInSeconds);
+  if (error || !data) throw new Error(`Falha ao assinar fotos: ${error?.message}`);
+  return data.flatMap((d) => (d.signedUrl ? [d.signedUrl] : []));
+}
+
 /** Baixa as fotos originais do bucket privado, em base64, pro pipeline de IA. */
 export async function downloadPhotosBase64(
   request: PetMiniatureRequest,
