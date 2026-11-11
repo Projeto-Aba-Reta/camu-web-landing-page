@@ -17,6 +17,7 @@ import {
   normalizePetName,
   PET_NAME_ERROR,
   publicMediaUrl,
+  setRequestContact,
   setSelectedVariant,
   validatePhotos,
   type IncomingPhoto,
@@ -116,6 +117,39 @@ export async function submitPetMiniatureIntake(formData: FormData): Promise<PetM
   }
 }
 
+/** v2: cria a encomenda só com nome do pet + 3–4 fotos e dispara a prévia. Nome,
+ *  WhatsApp e e-mail do cliente são coletados depois, no carrinho. */
+export async function submitPetMiniatureIntakeV2(formData: FormData): Promise<PetMiniatureIntakeResult> {
+  const petName = normalizePetName(formData.get("petName"));
+  if (!petName) return { ok: false, error: PET_NAME_ERROR };
+
+  const files = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
+  const photos: IncomingPhoto[] = [];
+  for (const file of files) {
+    photos.push({ name: file.name, type: file.type, buffer: Buffer.from(await file.arrayBuffer()) });
+  }
+  const validationError = validatePhotos(photos);
+  if (validationError) return { ok: false, error: validationError };
+
+  try {
+    const request = await createPetMiniatureRequest({ petName, photos });
+    after(() => runPetMiniatureGeneration(request.id));
+
+    const posthog = getPostHogClient();
+    if (posthog) {
+      posthog.capture({
+        distinctId: request.id,
+        event: "pet_miniature_order_created",
+        properties: { photo_count: photos.length, request_id: request.id, flow: "v2" },
+      });
+      await posthog.flush();
+    }
+    return { ok: true, requestId: request.id };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Não foi possível enviar suas fotos." };
+  }
+}
+
 export type PetMiniatureStatusResult =
   | {
       ok: true;
@@ -176,6 +210,9 @@ export type PetMiniatureAddress = {
   email?: string;
 };
 
+/** Contato coletado no carrinho, depois da prévia (fluxo v2). */
+export type PetMiniatureContact = { name: string; phone: string; email: string };
+
 const CEP_RE = /^\d{5}-?\d{3}$/;
 
 /** O SDK do Mercado Pago rejeita com objetos que não são `instanceof Error`
@@ -219,6 +256,7 @@ export type PetMiniatureCartItem = {
 export async function approvePetMiniatureCartAndPay(
   cartItems: PetMiniatureCartItem[],
   address: PetMiniatureAddress,
+  contact?: PetMiniatureContact,
 ): Promise<PetMiniatureApprovalResult> {
   // Dedup por encomenda (a última variante escolhida vence).
   const byRequest = new Map<string, PetMiniatureVariant>();
@@ -279,11 +317,37 @@ export async function approvePetMiniatureCartAndPay(
   );
   const netByKey = new Map(cartPricing.lines.map((l) => [l.key, l.netPriceCents]));
 
-  // Identidade do pedido: a primeira encomenda do carrinho.
-  const primary = loaded[0].request;
-  const email = (primary.customer_email || address?.email || "").trim();
+  // Identidade do pedido: a primeira encomenda do carrinho que já tem contato
+  // (fluxo v1). No fluxo v2 nenhuma tem — os dados vêm de `contact`, coletados
+  // depois da prévia, e são gravados nas encomendas sem contato.
+  const withContact = loaded.find((l) => l.request.customer_email)?.request ?? null;
+  let customerName: string;
+  let customerPhone: string;
+  let email: string;
+  if (withContact) {
+    customerName = withContact.customer_name;
+    customerPhone = withContact.customer_phone;
+    email = (withContact.customer_email ?? "").trim();
+  } else {
+    customerName = String(contact?.name ?? "").trim();
+    customerPhone = String(contact?.phone ?? "").trim();
+    email = String(contact?.email ?? "").trim().toLowerCase();
+    if (!customerName) return { ok: false, error: "Informe seu nome." };
+    if (!isValidEmail(email)) {
+      return { ok: false, error: "Digite um e-mail válido — é por ele que você acompanha o pedido." };
+    }
+    if (!isValidPhone(customerPhone)) {
+      return { ok: false, error: "Digite um WhatsApp válido: só DDD + número, sem o código do país. Ex.: (11) 91258-1464." };
+    }
+  }
 
   try {
+    if (!withContact) {
+      await setRequestContact(
+        loaded.map((l) => l.id),
+        { name: customerName, phone: customerPhone, email },
+      );
+    }
     await Promise.all(loaded.map((l) => setSelectedVariant(l.id, l.variant)));
 
     const { order } = await createOrder({
@@ -294,9 +358,9 @@ export async function approvePetMiniatureCartAndPay(
       })),
       discountCents: cartPricing.discountCents,
       customer: {
-        name: primary.customer_name,
+        name: customerName,
         email,
-        phone: primary.customer_phone,
+        phone: customerPhone,
         cep,
         line,
         city,
@@ -322,7 +386,7 @@ export async function approvePetMiniatureCartAndPay(
         unit_price: (netByKey.get(l.id) ?? (priceOf(l.variant) as number)) / 100,
       })),
       shippingReais: order.shipping_cents / 100,
-      payer: email ? { name: primary.customer_name, email } : undefined,
+      payer: email ? { name: customerName, email } : undefined,
     });
 
     await setOrderPreference(order.id, sessionId);

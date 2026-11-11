@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { submitPetMiniatureIntake } from "@/app/actions/pet-miniature";
+import { submitPetMiniatureIntake, submitPetMiniatureIntakeV2 } from "@/app/actions/pet-miniature";
 import { trackFunnel } from "@/lib/analytics";
 import { formatPhone, isValidPhone, isValidEmail } from "@/lib/contact";
 import { usePetCart } from "@/lib/pet-miniature-cart";
@@ -14,7 +14,9 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const inputClass =
   "w-full rounded-xl border-2 border-charcoal bg-offwhite px-4 py-3.5 font-sans text-sm text-charcoal outline-none placeholder:text-charcoal/45 focus:border-teal-dark";
 
-export default function PetMiniatureIntakeForm() {
+/** `v2`: pede só nome do pet + fotos; nome/WhatsApp/e-mail ficam pro carrinho,
+ *  depois da prévia. */
+export default function PetMiniatureIntakeForm({ v2 = false }: { v2?: boolean }) {
   const router = useRouter();
   const { items: petCartItems, ready: petCartReady } = usePetCart();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -27,7 +29,7 @@ export default function PetMiniatureIntakeForm() {
   // Pet 2+: já tem miniatura no carrinho → só pedimos as fotos, reaproveitando
   // nome/WhatsApp/e-mail da 1ª encomenda.
   const priorLine = petCartItems[0] ?? null;
-  const quickAdd = petCartReady && priorLine != null;
+  const quickAdd = !v2 && petCartReady && priorLine != null;
 
   function markStarted() {
     if (startedRef.current) return;
@@ -62,7 +64,7 @@ export default function PetMiniatureIntakeForm() {
   async function onSubmit(formData: FormData) {
     setError(null);
 
-    if (!quickAdd) {
+    if (!quickAdd && !v2) {
       const email = String(formData.get("email") ?? "").trim();
       if (!isValidEmail(email)) {
         setError("Digite um e-mail válido — é por ele que você acompanha o pedido.");
@@ -87,7 +89,9 @@ export default function PetMiniatureIntakeForm() {
     photos.forEach((file) => formData.append("photos", file));
 
     setSubmitting(true);
-    const res = await submitPetMiniatureIntake(formData);
+    const res = v2
+      ? await submitPetMiniatureIntakeV2(formData)
+      : await submitPetMiniatureIntake(formData);
 
     if (res.ok) {
       // Mantém o loading até a navegação concluir (não reabilita o botão).
@@ -100,17 +104,23 @@ export default function PetMiniatureIntakeForm() {
   }
 
   return (
-    <form action={onSubmit} onFocusCapture={markStarted} className="flex flex-col gap-4">
-      {quickAdd ? (
-        <>
+    <form
+      action={onSubmit}
+      onFocusCapture={markStarted}
+      className={`flex flex-col ${v2 ? "gap-3 md:gap-4" : "gap-4"}`}
+    >
+      {v2 ? null : quickAdd ? (
+        // `key` distinto: sem ele o React reaproveita os inputs entre os dois
+        // ramos quando o carrinho hidrata, causando o aviso uncontrolled→controlled.
+        <Fragment key="quick-add">
           <input type="hidden" name="fromRequestId" value={priorLine.requestId} />
           <div className="rounded-xl border-2 border-dashed border-teal bg-teal/10 px-4 py-3 font-sans text-[13px] text-charcoal/75">
             Outro pet pro mesmo pedido{priorLine.customerEmail ? ` (${priorLine.customerEmail})` : ""} —
             é só mandar as fotos. Seus dados continuam os mesmos.
           </div>
-        </>
+        </Fragment>
       ) : (
-        <>
+        <Fragment key="full">
           <input name="name" required placeholder="Nome" className={inputClass} />
           <div>
             <input
@@ -141,7 +151,7 @@ export default function PetMiniatureIntakeForm() {
               de acesso, sem senha.
             </p>
           </div>
-        </>
+        </Fragment>
       )}
 
       <div>
@@ -227,8 +237,15 @@ export default function PetMiniatureIntakeForm() {
           ? "Enviando fotos…"
           : quickAdd
             ? "Gerar prévia deste pet →"
-            : "Gerar prévia da miniatura →"}
+            : v2
+              ? "Gerar minha prévia grátis →"
+              : "Gerar prévia da miniatura →"}
       </button>
+      {v2 && (
+        <p className="-mt-1 text-center font-sans text-xs font-semibold text-charcoal/65">
+          ✓ 100% grátis e sem compromisso — você só paga se gostar da prévia.
+        </p>
+      )}
     </form>
   );
 }

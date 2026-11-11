@@ -16,6 +16,9 @@ if (!token) {
     ui_host: "https://us.posthog.com",
     defaults: "2026-01-30",
     capture_exceptions: true,
+    // O script de dead clicks (/ingest/static/dead-clicks-autocapture.js) falha
+    // ao carregar no navegador (bloqueadores / lazy-load) e polui o console.
+    capture_dead_clicks: false,
     debug: process.env.NODE_ENV === "development",
   });
 }

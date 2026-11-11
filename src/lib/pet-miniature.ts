@@ -58,10 +58,12 @@ function extFor(mimeType: string): string {
  *  com status inicial "processando". Preços e produto do catálogo entram
  *  só na aprovação. */
 export async function createPetMiniatureRequest(input: {
-  name: string;
+  /** Opcionais na v2: os dados de contato só são coletados depois da prévia
+   *  (ver `setRequestContact`). */
+  name?: string;
   petName: string;
-  phone: string;
-  email: string;
+  phone?: string;
+  email?: string;
   photos: IncomingPhoto[];
 }): Promise<PetMiniatureRequest> {
   const db = getServiceClient();
@@ -81,10 +83,10 @@ export async function createPetMiniatureRequest(input: {
     .from("pet_miniature_requests")
     .insert({
       id,
-      customer_name: input.name,
+      customer_name: input.name ?? "",
       pet_name: input.petName,
-      customer_phone: input.phone,
-      customer_email: input.email.trim().toLowerCase(),
+      customer_phone: input.phone ?? "",
+      customer_email: input.email ? input.email.trim().toLowerCase() : null,
       photo_paths: photoPaths,
       status: "processando" satisfies PetMiniatureStatus,
     })
@@ -297,6 +299,25 @@ export async function markFailed(id: string, message: string): Promise<void> {
     .from("pet_miniature_requests")
     .update({ status: "falhou" satisfies PetMiniatureStatus, ai_error: message })
     .eq("id", id);
+}
+
+/** v2: grava nome/WhatsApp/e-mail coletados depois da prévia, nas encomendas
+ *  do carrinho que ainda não tinham contato. */
+export async function setRequestContact(
+  ids: string[],
+  contact: { name: string; phone: string; email: string },
+): Promise<void> {
+  if (ids.length === 0) return;
+  const db = getServiceClient();
+  const { error } = await db
+    .from("pet_miniature_requests")
+    .update({
+      customer_name: contact.name,
+      customer_phone: contact.phone,
+      customer_email: contact.email.trim().toLowerCase(),
+    })
+    .in("id", ids);
+  if (error) throw new Error(`Falha ao salvar seus dados: ${error.message}`);
 }
 
 export async function linkOrder(id: string, orderId: string): Promise<void> {

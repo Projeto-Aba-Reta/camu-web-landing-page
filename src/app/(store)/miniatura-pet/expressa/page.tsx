@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getPetMiniaturePricing } from "@/lib/store";
-import { petBeforeAfterExamples } from "@/lib/data";
+import { petBeforeAfterExamplesV2 } from "@/lib/data";
 import PetMiniatureExpressStep1Form from "@/components/store/PetMiniatureExpressStep1Form";
 import PetBeforeAfterCarousel from "@/components/store/PetBeforeAfterCarousel";
 
@@ -47,7 +47,7 @@ export default async function MiniaturaPetExpressaPage({
         </p>
       </div>
 
-      <PetBeforeAfterCarousel examples={petBeforeAfterExamples} />
+      <PetBeforeAfterCarousel examples={petBeforeAfterExamplesV2} glow={false} />
 
       <ol className="mb-10 grid gap-3 sm:grid-cols-3">
         {steps.map((step) => (

@@ -16,6 +16,7 @@ import {
 import { cepDigits } from "@/lib/cep";
 import { useFreteQuote } from "@/lib/use-frete-quote";
 import { trackFunnel } from "@/lib/analytics";
+import { formatPhone, isValidPhone, isValidEmail } from "@/lib/contact";
 import AddressFields, {
   addressLine,
   emptyAddress,
@@ -23,12 +24,16 @@ import AddressFields, {
   type AddressFormValue,
 } from "./AddressFields";
 
-const variantLabel = (v: string) => (v === "com_pintura" ? "Com pintura" : "Sem pintura");
+const contactInputClass =
+  "w-full rounded-xl border-2 border-charcoal bg-offwhite px-4 py-3.5 font-sans text-sm text-charcoal outline-none placeholder:text-charcoal/45 focus:border-teal-dark disabled:opacity-60";
+
+const variantLabel =(v: string) => (v === "com_pintura" ? "Com pintura" : "Sem pintura");
 
 export default function PetMiniatureCart() {
   const router = useRouter();
   const { items, ready, pricing, remove, clear } = usePetCart();
   const [address, setAddress] = useState<AddressFormValue>(emptyAddress);
+  const [contact, setContact] = useState({ name: "", phone: "", email: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -97,8 +102,24 @@ export default function PetMiniatureCart() {
 
   const totalCents = pricing.itemsTotalCents + shippingCents;
   const orderEmail = items.find((i) => i.customerEmail)?.customerEmail ?? null;
+  // v2: as encomendas nascem sem contato — pedimos aqui, depois da prévia.
+  const needsContact = !orderEmail;
 
   async function onSubmit() {
+    if (needsContact) {
+      if (!contact.name.trim()) {
+        setError("Informe seu nome.");
+        return;
+      }
+      if (!isValidEmail(contact.email.trim())) {
+        setError("Digite um e-mail válido — é por ele que você acompanha o pedido.");
+        return;
+      }
+      if (!isValidPhone(contact.phone)) {
+        setError("Digite um WhatsApp válido: só DDD + número, sem o código do país. Ex.: (11) 91258-1464.");
+        return;
+      }
+    }
     const addrError = validateAddress(address);
     if (addrError) {
       setError(addrError);
@@ -122,6 +143,9 @@ export default function PetMiniatureCart() {
         city: address.city.trim(),
         uf: address.uf.trim(),
       },
+      needsContact
+        ? { name: contact.name.trim(), phone: contact.phone, email: contact.email.trim() }
+        : undefined,
     );
     if (res.ok) {
       trackFunnel("checkout_iniciado", { fluxo: "miniatura_pet_carrinho" });
@@ -136,6 +160,44 @@ export default function PetMiniatureCart() {
   return (
     <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr]">
       <div className="flex flex-col gap-7">
+        {needsContact && (
+          <section>
+            <h2 className="mb-2 font-heading text-xl font-bold text-charcoal">Seus dados</h2>
+            <p className="mb-4 font-sans text-sm text-charcoal/60">
+              É por eles que a gente acompanha seu pedido — o e-mail vira o acesso à sua conta, sem
+              senha.
+            </p>
+            <div className="flex flex-col gap-3">
+              <input
+                value={contact.name}
+                onChange={(e) => setContact({ ...contact, name: e.target.value })}
+                placeholder="Nome"
+                autoComplete="name"
+                disabled={submitting}
+                className={contactInputClass}
+              />
+              <input
+                value={contact.phone}
+                onChange={(e) => setContact({ ...contact, phone: formatPhone(e.target.value) })}
+                placeholder="WhatsApp — (99) 99999-9999"
+                inputMode="tel"
+                autoComplete="tel"
+                disabled={submitting}
+                className={contactInputClass}
+              />
+              <input
+                type="email"
+                value={contact.email}
+                onChange={(e) => setContact({ ...contact, email: e.target.value })}
+                placeholder="E-mail"
+                autoComplete="email"
+                disabled={submitting}
+                className={contactInputClass}
+              />
+            </div>
+          </section>
+        )}
+
         <section>
           <h2 className="mb-2 font-heading text-xl font-bold text-charcoal">Endereço de entrega</h2>
           <p className="mb-4 font-sans text-sm text-charcoal/60">

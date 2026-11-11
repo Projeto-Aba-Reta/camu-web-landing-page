@@ -39,6 +39,17 @@ export type PetBeforeAfterExample = {
   afterAlt: string;
 };
 
+/** Par único usado na v2 (/miniatura-pet/v2). */
+export const petBeforeAfterExamplesV2: PetBeforeAfterExample[] = [
+  {
+    petName: "Meg",
+    beforeSrc: "/images/cantinho_foto_antes_meg.jpeg",
+    beforeAlt: "Foto da pet Meg enviada pela cliente",
+    afterSrc: "/images/cantinho_foto_depois_meg.jpeg",
+    afterAlt: "Miniatura impressa em 3D da pet Meg em uma vitrine de vidro",
+  },
+];
+
 export const petBeforeAfterExamples: PetBeforeAfterExample[] = [
   {
     petName: "Tofu",

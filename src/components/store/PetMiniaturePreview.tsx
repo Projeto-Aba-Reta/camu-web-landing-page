@@ -10,6 +10,7 @@ import {
 import { formatBRL, FRETE_ENABLED, SHIPPING_CENTS } from "@/lib/money";
 import { trackFunnel } from "@/lib/analytics";
 import { usePetCart } from "@/lib/pet-miniature-cart";
+import { AI_QUOTA_MESSAGE, cantinhoPetWhatsappUrl, isAiQuotaError } from "@/lib/ai-quota";
 import type { PetMiniatureStatus, PetMiniatureVariant } from "@/lib/types";
 
 const POLL_MS = 3000;
@@ -156,8 +157,20 @@ export default function PetMiniaturePreview({
           Não conseguimos gerar a prévia
         </h2>
         <p className="max-w-sm font-sans text-sm text-charcoal/70">
-          {genError ?? "Tente novamente — as mesmas fotos já estão salvas."}
+          {isAiQuotaError(genError)
+            ? AI_QUOTA_MESSAGE
+            : (genError ?? "Tente novamente — as mesmas fotos já estão salvas.")}
         </p>
+        {isAiQuotaError(genError) && (
+          <a
+            href={cantinhoPetWhatsappUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="sticker-shadow rounded-full border-[3px] border-charcoal bg-coral px-6 py-3.5 font-heading font-bold text-charcoal transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-none"
+          >
+            Enviar mensagem no WhatsApp
+          </a>
+        )}
         <button
           type="button"
           onClick={onRetry}

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { uploadExpressPetPhotos, getExpressPetMiniatureStatus } from "@/app/actions/pet-miniature";
 import type { ExpressPetMiniatureStatusResult } from "@/app/actions/pet-miniature";
 import { trackFunnel } from "@/lib/analytics";
+import { AI_QUOTA_MESSAGE, cantinhoPetWhatsappUrl, isAiQuotaError } from "@/lib/ai-quota";
 
 const MIN_PHOTOS = 3;
 const MAX_PHOTOS = 4;
@@ -274,10 +275,16 @@ function PetExpressPreview({ orderCode, pet }: { orderCode: string; pet: PetSlot
         <p className="font-sans text-[13px] text-charcoal/70">
           {!result.ok
             ? result.error
-            : (result.error ?? "Não conseguimos gerar a prévia deste pet.")}
+            : isAiQuotaError(result.error)
+              ? AI_QUOTA_MESSAGE
+              : (result.error ?? "Não conseguimos gerar a prévia deste pet.")}
         </p>
         <a
-          href={waUrl(waText)}
+          href={
+            result.ok && isAiQuotaError(result.error)
+              ? cantinhoPetWhatsappUrl(null, orderCode)
+              : waUrl(waText)
+          }
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-full border-[3px] border-charcoal bg-teal px-5 py-2.5 font-heading text-[13px] font-bold text-charcoal"

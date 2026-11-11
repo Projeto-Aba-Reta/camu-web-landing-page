@@ -1,5 +1,6 @@
 import "server-only";
 import { GoogleGenAI } from "@google/genai";
+import { AI_QUOTA_MARKER, AI_QUOTA_MESSAGE, looksLikeQuotaError } from "./ai-quota";
 
 /** Interface isolando o provider de geração de imagem por IA do resto do pipeline. */
 export type AiImageInput = {
@@ -89,19 +90,28 @@ async function generateOne(
   prompt: string,
   photos: AiImageInput[],
 ): Promise<AiImageResult> {
-  const response = await ai.models.generateContent({
-    model,
-    config: { imageConfig: { aspectRatio: "1:1" } },
-    contents: [
-      {
-        role: "user",
-        parts: [
-          { text: prompt },
-          ...photos.map((p) => ({ inlineData: { mimeType: p.mimeType, data: p.base64 } })),
-        ],
-      },
-    ],
-  });
+  let response;
+  try {
+    response = await ai.models.generateContent({
+      model,
+      config: { imageConfig: { aspectRatio: "1:1" } },
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: prompt },
+            ...photos.map((p) => ({ inlineData: { mimeType: p.mimeType, data: p.base64 } })),
+          ],
+        },
+      ],
+    });
+  } catch (err) {
+    if (looksLikeQuotaError(err)) {
+      console.error("[ai-image] cota/créditos esgotados", err);
+      throw new Error(`${AI_QUOTA_MARKER} ${AI_QUOTA_MESSAGE}`);
+    }
+    throw err;
+  }
 
   const base64 = response.data;
   const inlinePart = response.candidates?.[0]?.content?.parts?.find((p) => p.inlineData)
