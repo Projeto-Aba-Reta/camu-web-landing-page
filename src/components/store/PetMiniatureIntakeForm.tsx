@@ -1,5 +1,6 @@
 "use client";
 
+import { useTrackedError } from "@/lib/use-tracked-error";
 import { compressPhotos } from "@/lib/compress-photos";
 import { Fragment, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -23,7 +24,7 @@ export default function PetMiniatureIntakeForm({ v2 = false }: { v2?: boolean })
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<File[]>([]);
   const [phone, setPhone] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTrackedError("intake_miniatura", null);
   const [submitting, setSubmitting] = useState(false);
   const startedRef = useRef(false);
 

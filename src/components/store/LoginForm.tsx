@@ -1,5 +1,6 @@
 "use client";
 
+import { useTrackedError } from "@/lib/use-tracked-error";
 import { useRef, useState } from "react";
 import { requestMagicLink } from "@/app/actions/auth";
 import { trackFunnel } from "@/lib/analytics";
@@ -10,7 +11,7 @@ const inputClass =
 export default function LoginForm() {
   const [sent, setSent] = useState(false);
   const [sentTo, setSentTo] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTrackedError("login_magic_link", null);
   const [submitting, setSubmitting] = useState(false);
   // Conta quantos pedidos de link o cliente faz nesta visita — pedir de novo
   // sem sair da tela é sinal de impaciência (achou que não chegou, etc).

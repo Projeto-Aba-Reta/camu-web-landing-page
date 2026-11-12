@@ -1,5 +1,6 @@
 "use client";
 
+import { useTrackedError } from "@/lib/use-tracked-error";
 import { useState } from "react";
 import { submitCustomOrder } from "@/app/actions/custom-orders";
 
@@ -10,7 +11,7 @@ const inputClass =
 
 export default function CustomOrderForm() {
   const [budget, setBudget] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTrackedError("encomenda_personalizada", null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 

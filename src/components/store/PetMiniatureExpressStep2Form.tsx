@@ -1,5 +1,6 @@
 "use client";
 
+import { useTrackedError } from "@/lib/use-tracked-error";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { createExpressPetMiniatureOrderAndPay } from "@/app/actions/pet-miniature";
@@ -30,7 +31,7 @@ type Props = {
 export default function PetMiniatureExpressStep2Form({ quantity, email, comPinturaCents }: Props) {
   const [address, setAddress] = useState<AddressFormValue>(emptyAddress);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTrackedError("expressa_etapa2", null);
 
   const unitPriceCents = comPinturaCents;
   const priceReady = unitPriceCents != null;

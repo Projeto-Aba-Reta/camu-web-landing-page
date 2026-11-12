@@ -1,5 +1,6 @@
 "use client";
 
+import { useTrackedError } from "@/lib/use-tracked-error";
 import { compressPhotos } from "@/lib/compress-photos";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -77,7 +78,7 @@ function PetUploader({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<File[]>([]);
   const [petName, setPetName] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTrackedError("expressa_upload_fotos", null);
   const [submitting, setSubmitting] = useState(false);
 
   function addFiles(fileList: FileList | null) {

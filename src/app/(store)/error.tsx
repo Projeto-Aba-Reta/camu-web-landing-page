@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { trackError } from "@/lib/analytics";
 
 export default function StoreError({
   error,
@@ -12,6 +13,7 @@ export default function StoreError({
 }) {
   useEffect(() => {
     console.error(error);
+    trackError("render_loja", error.message, error.digest ? { digest: error.digest } : undefined);
   }, [error]);
 
   return (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTrackedError } from "@/lib/use-tracked-error";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { computePetCartPricing } from "@/lib/pet-miniature-cart-pricing";
@@ -20,7 +21,7 @@ export default function PetMiniatureExpressStep1Form({
   const router = useRouter();
   const [quantity, setQuantity] = useState(initialQuantity ?? 1);
   const [email, setEmail] = useState(initialEmail ?? "");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTrackedError("expressa_etapa1", null);
 
   const unitPriceCents = comPinturaCents;
 

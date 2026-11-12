@@ -1,5 +1,6 @@
 "use client";
 
+import { useTrackedError } from "@/lib/use-tracked-error";
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -35,7 +36,7 @@ export default function PetMiniatureCart() {
   const [address, setAddress] = useState<AddressFormValue>(emptyAddress);
   const [contact, setContact] = useState({ name: "", phone: "", email: "" });
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTrackedError("carrinho_miniatura", null);
 
   const netByRequest = useMemo(
     () => new Map(pricing.lines.map((l) => [l.key, l])),

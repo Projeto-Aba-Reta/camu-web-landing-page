@@ -1,5 +1,6 @@
 "use client";
 
+import { useTrackedError } from "@/lib/use-tracked-error";
 import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
@@ -17,7 +18,7 @@ const inputClass =
 
 export default function CheckoutForm({ initialError }: { initialError?: string }) {
   const { items, subtotalCents, count, ready, clear } = useCart();
-  const [error, setError] = useState<string | null>(initialError ?? null);
+  const [error, setError] = useTrackedError("checkout", initialError ?? null);
   const [submitting, setSubmitting] = useState(false);
   const [uf, setUf] = useState("");
   const [cep, setCep] = useState("");

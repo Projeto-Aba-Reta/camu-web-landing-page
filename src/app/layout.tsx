@@ -3,6 +3,7 @@ import { Baloo_2, Space_Grotesk } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { CartProvider } from "@/lib/cart-context";
+import GlobalErrorTracker from "@/components/GlobalErrorTracker";
 import CrispChat from "@/components/CrispChat";
 import "./globals.css";
 
@@ -96,6 +97,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
         <CartProvider>{children}</CartProvider>
+        <GlobalErrorTracker />
         <Analytics />
         {crispWebsiteId && <CrispChat websiteId={crispWebsiteId} />}
       </body>

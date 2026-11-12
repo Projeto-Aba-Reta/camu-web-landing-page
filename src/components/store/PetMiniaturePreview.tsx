@@ -1,5 +1,6 @@
 "use client";
 
+import { useTrackedError } from "@/lib/use-tracked-error";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -60,7 +61,7 @@ export default function PetMiniaturePreview({
   const [plainUrl, setPlainUrl] = useState(initialPlainPreviewUrl);
   const [genError, setGenError] = useState(initialError);
   const [busy, setBusy] = useState(false);
-  const [payError, setPayError] = useState<string | null>(null);
+  const [payError, setPayError] = useTrackedError("previa_pagamento", null);
   const [expandedUrl, setExpandedUrl] = useState<string | null>(null);
   const [expandedAlt, setExpandedAlt] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
