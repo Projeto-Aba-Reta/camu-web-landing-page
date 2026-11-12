@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AbPetExposure from "@/components/store/AbPetExposure";
 import { getPetMiniaturePricing } from "@/lib/store";
 import { petBeforeAfterExamplesV2 } from "@/lib/data";
 import PetMiniatureExpressStep1Form from "@/components/store/PetMiniatureExpressStep1Form";
@@ -32,6 +33,7 @@ export default async function MiniaturaPetExpressaPage({
 
   return (
     <section className="mx-auto max-w-5xl px-6 py-12 sm:px-10 md:py-16">
+      <AbPetExposure />
       <div className="mb-8 max-w-2xl">
         <div
           className="mb-4 inline-block rounded-full border-2 border-charcoal bg-teal px-3.5 py-1.5 font-sans text-xs font-bold text-charcoal"

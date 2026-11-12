@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AbPetExposure from "@/components/store/AbPetExposure";
 import PetMiniatureIntakeForm from "@/components/store/PetMiniatureIntakeForm";
 import PetBeforeAfterCarousel from "@/components/store/PetBeforeAfterCarousel";
 import { petBeforeAfterExamplesV2 } from "@/lib/data";
@@ -21,6 +22,7 @@ const steps = [
 export default function MiniaturaPetV2Page() {
   return (
     <section className="mx-auto max-w-3xl px-5 py-5 sm:px-10 md:py-16 lg:grid lg:max-w-6xl lg:grid-cols-[minmax(0,44rem)_18rem] lg:justify-center lg:gap-12">
+      <AbPetExposure />
       <div>
         <div className="mb-3 max-w-2xl md:mb-8">
           <div

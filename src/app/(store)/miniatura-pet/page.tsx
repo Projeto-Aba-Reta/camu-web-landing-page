@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import PetMiniatureIntakeForm from "@/components/store/PetMiniatureIntakeForm";
+import AbPetRedirect from "@/components/store/AbPetRedirect";
 import StickyCta from "@/components/StickyCta";
 import { petMiniatureSteps } from "@/lib/data";
 
@@ -55,6 +56,7 @@ export default function MiniaturaPetPage() {
         </ol>
       </div>
 
+      <AbPetRedirect />
       <StickyCta
         label="Gerar prévia da miniatura"
         href="#intake-form"
