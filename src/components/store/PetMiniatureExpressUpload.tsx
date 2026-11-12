@@ -1,5 +1,6 @@
 "use client";
 
+import { compressPhotos } from "@/lib/compress-photos";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { uploadExpressPetPhotos, getExpressPetMiniatureStatus } from "@/app/actions/pet-miniature";
@@ -112,9 +113,9 @@ function PetUploader({
     }
     const formData = new FormData();
     formData.append("petName", petName);
-    photos.forEach((file) => formData.append("photos", file));
-
     setSubmitting(true);
+    const compressed = await compressPhotos(photos);
+    compressed.forEach((file) => formData.append("photos", file));
     const res = await uploadExpressPetPhotos(orderCode, pet.index, formData);
     setSubmitting(false);
     if (res.ok) {

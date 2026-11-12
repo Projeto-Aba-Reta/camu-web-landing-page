@@ -1,5 +1,6 @@
 "use client";
 
+import { compressPhotos } from "@/lib/compress-photos";
 import { Fragment, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { submitPetMiniatureIntake, submitPetMiniatureIntakeV2 } from "@/app/actions/pet-miniature";
@@ -86,9 +87,9 @@ export default function PetMiniatureIntakeForm({ v2 = false }: { v2?: boolean })
       return;
     }
 
-    photos.forEach((file) => formData.append("photos", file));
-
     setSubmitting(true);
+    const compressed = await compressPhotos(photos);
+    compressed.forEach((file) => formData.append("photos", file));
     const res = v2
       ? await submitPetMiniatureIntakeV2(formData)
       : await submitPetMiniatureIntake(formData);
